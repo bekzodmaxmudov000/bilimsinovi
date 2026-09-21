@@ -1,0 +1,4331 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilim Sinovi — Online testlar va sertifikatlar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --ink:#14213D;
+    --ink-fill:#14213D;
+    --slate:#3B4A6B;
+    --parchment:#F7F2E7;
+    --brass:#A9822C;
+    --brass-light:#C9A855;
+    --canvas:#FDFBF6;
+    --surface:#FFFFFF;
+    --text:#262220;
+    --text-soft:#5B564E;
+    --success:#3F6B4F;
+    --error:#9B4630;
+    --line:#DCD3BF;
+  }
+  :root[data-theme="dark"]{
+    --ink:#8CA0D9;
+    --ink-fill:#33488A;
+    --brass:#D9BB74;
+    --canvas:#1B1D21;
+    --surface:#232529;
+    --text:#E8E4DA;
+    --text-soft:#A6A196;
+    --line:#3A3B3D;
+    --success:#4FA374;
+    --error:#C15A42;
+  }
+  :root{
+    --radius-sm:10px;
+    --radius-md:16px;
+    --radius-lg:22px;
+    --radius-pill:999px;
+    --shadow-sm:0 2px 10px rgba(20,33,61,.06);
+    --shadow-md:0 10px 30px rgba(20,33,61,.10);
+    --shadow-lg:0 18px 46px rgba(20,33,61,.14);
+    --navy:#101C36;
+    --navy-2:#16264A;
+  }
+  :root, body{
+    transition:background .2s ease, color .2s ease;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--canvas);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{
+    font-family:'Fraunces', serif;
+    color:var(--ink);
+    margin:0;
+  }
+  button{
+    font-family:'IBM Plex Sans', sans-serif;
+    cursor:pointer;
+    border:none;
+    background:none;
+  }
+  input{
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+
+  /* ---------- layout shell ---------- */
+  .app{
+    max-width:960px;
+    margin:0 auto;
+    padding:0 24px 80px;
+  }
+  .topbar{
+    background:var(--navy);
+    padding:16px 24px;
+  }
+  .topbar-inner{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    max-width:960px;
+    margin:0 auto;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .brand-mark{
+    width:32px;height:32px;
+    border-radius:var(--radius-sm);
+    background:var(--brass);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:15px;
+    color:var(--navy);
+    flex:none;
+  }
+  .brand-name{
+    font-family:'Fraunces', serif;
+    font-size:20px;
+    font-weight:600;
+    color:#fff;
+    letter-spacing:0.2px;
+  }
+  .brand-tag{
+    font-size:13px;
+    color:#AEB6C9;
+    border-left:1px solid rgba(255,255,255,.18);
+    padding-left:12px;
+  }
+
+  .screen{
+    animation: rise .38s ease both;
+  }
+  @keyframes rise{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  /* ---------- home ---------- */
+  .intro{
+    padding:48px 0 16px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:36px;
+  }
+  .intro h1{
+    font-size:34px;
+    font-weight:600;
+    max-width:560px;
+    line-height:1.2;
+  }
+  .intro p{
+    color:var(--text-soft);
+    max-width:480px;
+    margin-top:14px;
+    font-size:15.5px;
+  }
+
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .section-head h2{
+    font-size:20px;
+    font-weight:600;
+  }
+  .section-head span{
+    font-size:13px;
+    color:var(--text-soft);
+  }
+
+  .test-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:16px;
+    margin-bottom:44px;
+  }
+  @media (max-width:620px){ .test-grid{grid-template-columns:1fr;} }
+
+  .test-card{
+    position:relative;
+    border-radius:var(--radius-lg);
+    background:var(--surface);
+    box-shadow:var(--shadow-sm);
+    text-align:left;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .test-card:hover{
+    transform:translateY(-5px);
+    box-shadow:var(--shadow-lg);
+  }
+  .test-card-header{
+    height:110px;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .test-card-header .glyph{
+    font-size:32px;
+    font-weight:700;
+    color:#fff;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .test-card-arrow{
+    position:absolute;
+    top:12px; right:12px;
+    width:32px; height:32px;
+    border-radius:50%;
+    background:rgba(255,255,255,.92);
+    color:var(--navy);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:15px;
+    font-weight:700;
+  }
+  .test-card-body{
+    padding:18px 20px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+    flex:1;
+  }
+  .test-cat{
+    font-size:12px;
+    font-weight:700;
+  }
+  .test-card h3{
+    font-size:18.5px;
+    font-weight:600;
+    line-height:1.3;
+  }
+  .test-desc{
+    font-size:13.3px;
+    color:var(--text-soft);
+    line-height:1.5;
+  }
+  .test-rating{
+    font-size:12px;
+    color:var(--text-soft);
+  }
+  .test-rating .tr-stars{color:var(--brass); font-weight:700;}
+  .test-rating .tr-sub{color:var(--text-soft);}
+  .test-rating .tr-loading{color:var(--text-soft); font-style:italic;}
+  .test-meta{
+    display:flex;
+    gap:14px;
+    font-size:12.5px;
+    color:var(--text-soft);
+  }
+  .test-cta{
+    margin-top:10px;
+    border-radius:var(--radius-pill);
+    padding:10px 18px;
+    font-size:13.5px;
+    font-weight:600;
+    color:#fff;
+    text-align:center;
+    box-shadow:var(--shadow-sm);
+    transition:transform .12s ease, box-shadow .15s ease;
+  }
+  .test-cta:hover{transform:translateY(-1px); box-shadow:var(--shadow-md);}
+
+  .results-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .result-row{
+    background:var(--surface);
+    padding:14px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-size:14.5px;
+    border-radius:var(--radius-md);
+    box-shadow:var(--shadow-sm);
+  }
+  .result-row .name{font-weight:600;}
+  .result-row .sub{color:var(--text-soft); font-size:13px; margin-top:2px;}
+  .badge{
+    font-size:12.5px;
+    font-weight:600;
+    padding:4px 12px;
+    border-radius:var(--radius-pill);
+    border:1px solid;
+  }
+  .badge.pass{color:var(--success); border-color:var(--success);}
+  .badge.fail{color:var(--error); border-color:var(--error);}
+
+  .empty-note{
+    color:var(--text-soft);
+    font-size:14px;
+    border:1px dashed var(--line);
+    border-radius:var(--radius-md);
+    padding:16px;
+    margin-bottom:20px;
+  }
+
+  /* ---------- quiz ---------- */
+  .quiz-wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding-top:36px;
+  }
+  .quiz-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:10px;
+  }
+  .quiz-head h2{font-size:19px; font-weight:600;}
+  .timer{
+    font-family:'Fraunces', serif;
+    font-size:19px;
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .timer.low{color:var(--error);}
+  .progress-track{
+    height:6px;
+    border-radius:var(--radius-pill);
+    background:var(--line);
+    margin-bottom:34px;
+    position:relative;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--brass);
+    transition:width .3s ease;
+  }
+  .q-count{
+    font-size:13px;
+    color:var(--text-soft);
+    margin-bottom:8px;
+  }
+  .q-text{
+    font-size:23px;
+    font-weight:500;
+    line-height:1.4;
+    margin-bottom:28px;
+  }
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:32px;
+  }
+  .option{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    text-align:left;
+    font-size:15.5px;
+    background:var(--surface);
+    transition:border-color .12s ease, background .12s ease;
+  }
+  .option:hover{border-color:var(--slate);}
+  .option .letter{
+    flex:none;
+    width:26px;height:26px;
+    border-radius:50%;
+    border:1px solid var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .option.selected{
+    border-color:var(--ink);
+    background:var(--parchment);
+  }
+  .option.selected .letter{
+    background:var(--ink-fill);
+    color:#fff;
+  }
+  .option.correct{border-color:var(--success); background:#F2F7F3;}
+  .option.correct .letter{background:var(--success); border-color:var(--success); color:#fff;}
+  .option.wrong{border-color:var(--error); background:#FBF2EF;}
+  .option.wrong .letter{background:var(--error); border-color:var(--error); color:#fff;}
+
+  .quiz-nav{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .btn{
+    padding:12px 26px;
+    font-size:14.5px;
+    font-weight:600;
+    border:1.5px solid var(--ink);
+    color:var(--ink);
+    background:var(--surface);
+    border-radius:var(--radius-pill);
+    box-shadow:var(--shadow-sm);
+    transition:background .15s ease, color .15s ease, transform .12s ease, box-shadow .15s ease;
+  }
+  .btn:hover{background:var(--ink-fill); color:#fff; transform:translateY(-1px); box-shadow:var(--shadow-md);}
+  .btn.primary{background:var(--brass); color:var(--navy); border-color:var(--brass); box-shadow:var(--shadow-md);}
+  .btn.primary:hover{background:var(--brass-light); border-color:var(--brass-light); color:var(--navy);}
+  .btn.brass{border-color:var(--brass); color:var(--brass);}
+  .btn.brass:hover{background:var(--brass); color:#fff;}
+  [data-theme="dark"] .btn.brass:hover{color:#1B1D21;}
+  .btn:disabled{opacity:.35; cursor:not-allowed; transform:none;}
+  .btn:disabled:hover{background:var(--surface); color:var(--ink); transform:none; box-shadow:var(--shadow-sm);}
+  .btn-ghost{
+    font-size:14px;
+    color:var(--text-soft);
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+
+  /* ---------- result ---------- */
+  .result-wrap{
+    max-width:560px;
+    margin:0 auto;
+    padding-top:44px;
+    text-align:center;
+  }
+  .score-ring{
+    width:150px;height:150px;
+    border-radius:50%;
+    border:3px solid var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 26px;
+  }
+  .score-ring .num{
+    font-family:'Fraunces', serif;
+    font-size:38px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .score-ring .lbl{
+    font-size:12px;
+    color:var(--text-soft);
+    margin-top:2px;
+  }
+  .result-wrap.fail .score-ring{border-color:var(--error);}
+  .result-wrap.fail .score-ring .num{color:var(--error);}
+  .result-verdict{
+    font-size:16px;
+    margin-bottom:6px;
+  }
+  .result-xp{
+    display:inline-block;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--brass);
+    background:var(--parchment);
+    border-radius:var(--radius-pill);
+    padding:7px 16px;
+    margin-bottom:10px;
+  }
+  .result-wrap p.hint{
+    color:var(--text-soft);
+    font-size:14.5px;
+    margin-bottom:32px;
+  }
+  .result-actions{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    margin-bottom:40px;
+    flex-wrap:wrap;
+  }
+  .review{
+    text-align:left;
+    border-top:1px solid var(--line);
+    padding-top:24px;
+  }
+  .review h3{font-size:16px; margin-bottom:14px;}
+  .review-item{
+    padding:12px 0;
+    border-bottom:1px solid var(--line);
+    font-size:14.5px;
+  }
+  .review-item .q{font-weight:500; margin-bottom:6px;}
+  .review-item .a{color:var(--text-soft); font-size:13.5px;}
+  .review-item .a.wrong{color:var(--error);}
+  .review-item .a.right{color:var(--success);}
+
+  /* ---------- certificate ---------- */
+  .cert-wrap{
+    max-width:760px;
+    margin:0 auto;
+    padding-top:36px;
+  }
+  .cert-form{
+    display:flex;
+    gap:10px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+  }
+  .cert-form input{
+    flex:1;
+    min-width:220px;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    font-size:15px;
+    background:var(--surface);
+  }
+  .cert-form input:focus{outline:2px solid var(--brass); outline-offset:1px; border-color:var(--brass);}
+
+  .certificate{
+    --ink:#14213D;
+    --ink-fill:#14213D;
+    --brass:#A9822C;
+    --text:#262220;
+    --text-soft:#5B564E;
+    --line:#DCD3BF;
+    --success:#3F6B4F;
+    --error:#9B4630;
+    background:var(--parchment);
+    border:2px solid var(--ink);
+    padding:8px;
+    position:relative;
+  }
+  .certificate-inner{
+    border:1px solid var(--brass);
+    padding:52px 48px 40px;
+    position:relative;
+    text-align:center;
+  }
+  .certificate-inner::before, .certificate-inner::after{
+    content:"";
+    position:absolute;
+    width:22px;height:22px;
+    border-top:2px solid var(--brass);
+    border-left:2px solid var(--brass);
+    top:8px;left:8px;
+  }
+  .certificate-inner::after{
+    top:auto;left:auto;bottom:8px;right:8px;
+    border-top:none;border-left:none;
+    border-bottom:2px solid var(--brass);
+    border-right:2px solid var(--brass);
+  }
+  .cert-eyebrow{
+    font-size:13px;
+    color:var(--brass);
+    font-weight:600;
+    letter-spacing:0.5px;
+  }
+  .cert-title{
+    font-size:38px;
+    font-weight:600;
+    color:var(--ink);
+    margin:10px 0 26px;
+  }
+  .cert-sub{
+    font-size:14.5px;
+    color:var(--text-soft);
+  }
+  .cert-name{
+    font-family:'Fraunces', serif;
+    font-size:32px;
+    font-weight:500;
+    color:var(--ink);
+    margin:14px 0;
+    border-bottom:1px solid var(--brass);
+    display:inline-block;
+    padding-bottom:8px;
+    min-width:280px;
+  }
+  .cert-body{
+    font-size:15px;
+    color:var(--text);
+    max-width:480px;
+    margin:0 auto 30px;
+    line-height:1.7;
+  }
+  .cert-body b{color:var(--ink);}
+  .cert-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-top:30px;
+    text-align:left;
+  }
+  .cert-seal{
+    flex:none;
+  }
+  .cert-id{
+    font-size:12px;
+    color:var(--text-soft);
+  }
+  .cert-date{
+    font-size:13px;
+    color:var(--text-soft);
+    text-align:right;
+  }
+  .cert-actions{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    margin-top:30px;
+  }
+
+  @media print{
+    .topbar, .cert-form, .cert-actions, .btn-ghost{display:none !important;}
+    .app{padding:0; max-width:none;}
+    body{background:#fff;}
+  }
+
+  .footer-note{
+    text-align:center;
+    color:var(--text-soft);
+    font-size:12.5px;
+    margin-top:50px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+  }
+
+  /* ---------- auth ---------- */
+  .loading-wrap{
+    max-width:400px;
+    margin:120px auto;
+    text-align:center;
+    color:var(--text-soft);
+    font-size:14.5px;
+  }
+  .auth-wrap{
+    max-width:420px;
+    margin:0 auto;
+    padding-top:52px;
+  }
+  .auth-head{
+    text-align:center;
+    margin-bottom:30px;
+  }
+  .auth-head h1{
+    font-size:27px;
+    font-weight:600;
+  }
+  .auth-head p{
+    color:var(--text-soft);
+    font-size:14.5px;
+    margin-top:10px;
+  }
+  .auth-tabs{
+    display:flex;
+    border:1px solid var(--ink);
+    border-radius:var(--radius-pill);
+    overflow:hidden;
+    margin-bottom:26px;
+  }
+  .auth-tab{
+    flex:1;
+    padding:12px;
+    font-size:14.5px;
+    font-weight:600;
+    color:var(--ink);
+    background:var(--surface);
+    text-align:center;
+  }
+  .auth-tab.active{
+    background:var(--ink-fill);
+    color:#fff;
+  }
+  .auth-card{
+    border-radius:var(--radius-lg);
+    background:var(--surface);
+    box-shadow:var(--shadow-md);
+    padding:30px 26px;
+    position:relative;
+  }
+  .field{
+    margin-bottom:16px;
+  }
+  .field label{
+    display:block;
+    font-size:13px;
+    color:var(--text-soft);
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    font-size:15px;
+    background:var(--surface);
+  }
+  .field input:focus{
+    outline:2px solid var(--brass);
+    outline-offset:1px;
+    border-color:var(--brass);
+  }
+  .auth-error{
+    color:var(--error);
+    font-size:13.5px;
+    margin-bottom:16px;
+    border:1px solid var(--error);
+    padding:10px 12px;
+  }
+  .auth-submit{
+    width:100%;
+    padding:13px;
+    margin-top:6px;
+  }
+  .user-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 18px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    margin-bottom:28px;
+    font-size:14px;
+  }
+  .user-bar .who b{color:var(--ink);}
+  .user-bar .who span{color:var(--text-soft); font-size:12.5px; display:block; margin-top:2px;}
+
+  .topnav{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    border-left:1px solid var(--line);
+    padding-left:14px;
+  }
+  .topnav-link{
+    font-size:13px;
+    color:var(--text-soft);
+    padding-bottom:3px;
+    border-bottom:2px solid transparent;
+  }
+  .topnav-link:hover{color:var(--ink);}
+  .topnav-link.active{
+    color:var(--ink);
+    font-weight:600;
+    border-bottom-color:var(--brass);
+  }
+
+  /* ---------- profile ---------- */
+  .profile-wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding-top:36px;
+  }
+  .profile-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:30px;
+    padding-bottom:22px;
+    border-bottom:1px solid var(--line);
+  }
+  .profile-head h1{
+    font-size:26px;
+    font-weight:600;
+  }
+  .profile-head .login-line{
+    color:var(--text-soft);
+    font-size:13.5px;
+    margin-top:6px;
+  }
+  .stat-row{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);
+    overflow:hidden;
+    margin-bottom:36px;
+  }
+  .stat-box{
+    background:var(--surface);
+    padding:18px 16px;
+    text-align:center;
+    border-right:1px solid var(--line);
+  }
+  .stat-box:last-child{border-right:none;}
+  .stat-box .n{
+    font-family:'Fraunces', serif;
+    font-size:26px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .stat-box .l{
+    font-size:12.5px;
+    color:var(--text-soft);
+    margin-top:4px;
+  }
+  .profile-card{
+    border-radius:var(--radius-lg);
+    background:var(--surface);
+    box-shadow:var(--shadow-sm);
+    padding:24px;
+    margin-bottom:24px;
+  }
+  .profile-card h3{
+    font-size:16px;
+    font-weight:600;
+    margin-bottom:16px;
+  }
+  .profile-msg{
+    font-size:13.5px;
+    margin-bottom:14px;
+    padding:9px 12px;
+    border:1px solid;
+  }
+  .profile-msg.ok{color:var(--success); border-color:var(--success);}
+  .profile-msg.err{color:var(--error); border-color:var(--error);}
+  .cert-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:13px 0;
+    border-bottom:1px solid var(--line);
+    font-size:14.5px;
+  }
+  .cert-row:last-child{border-bottom:none;}
+  .cert-row .sub{color:var(--text-soft); font-size:12.5px; margin-top:2px;}
+
+  .hint-line{
+    font-size:12.5px;
+    margin-top:6px;
+    min-height:16px;
+  }
+  .hint-line.weak{color:var(--error);}
+  .hint-line.medium{color:var(--brass);}
+  .hint-line.strong{color:var(--success);}
+  .hint-line.taken{color:var(--error);}
+  .hint-line.free{color:var(--success);}
+
+  .field-pw{position:relative;}
+  .field-pw input{padding-right:42px;}
+  .pw-toggle{
+    position:absolute;
+    right:6px;
+    top:6px;
+    width:32px;
+    height:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text-soft);
+  }
+  .pw-toggle:hover{color:var(--ink);}
+  .pw-toggle svg{width:18px; height:18px;}
+
+  /* ---------- redesigned navbar ---------- */
+  .topbar-inner{
+    display:flex;
+    align-items:center;
+    gap:20px;
+  }
+  .topbar-mid{
+    flex:1;
+    display:flex;
+    justify-content:center;
+  }
+  .topbar-side{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex:none;
+  }
+  .site-nav{
+    display:flex;
+    align-items:center;
+    gap:26px;
+  }
+  .nav-link{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:13.5px;
+    color:#AEB6C9;
+    padding-bottom:4px;
+    border-bottom:2px solid transparent;
+  }
+  .nav-link svg{width:16px; height:16px; flex:none;}
+  .nav-link:hover{color:#fff;}
+  .nav-link.active{color:#fff; font-weight:600; border-bottom-color:var(--brass);}
+  .theme-toggle-inline{
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.08);
+    color:#AEB6C9;
+    display:flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  .theme-toggle-inline:hover{border-color:var(--brass); color:var(--brass);}
+  .theme-toggle-inline svg{width:16px; height:16px;}
+  .user-chip{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:4px 12px 4px 4px;
+    border-radius:var(--radius-pill);
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.08);
+  }
+  .user-chip:hover{border-color:var(--brass);}
+  .user-chip .avatar{
+    width:30px; height:30px;
+    border-radius:50%;
+    background:var(--brass);
+    color:var(--navy);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:12.5px;
+    flex:none;
+  }
+  .user-chip .who{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    line-height:1.25;
+  }
+  .user-chip .who b{font-size:12.5px; color:#fff; font-weight:600;}
+  .user-chip .who small{font-size:11px; color:#AEB6C9;}
+
+  .notif-btn{
+    position:relative;
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.08);
+    color:#AEB6C9;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:none;
+  }
+  .notif-btn:hover{border-color:var(--brass); color:var(--brass);}
+  .notif-btn svg{width:16px; height:16px;}
+  .notif-dot{
+    position:absolute;
+    top:5px; right:5px;
+    width:8px; height:8px;
+    border-radius:50%;
+    background:var(--error);
+    border:1.5px solid var(--navy);
+  }
+
+  .modal-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(16,20,30,.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:200;
+    padding:20px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .notif-modal{
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-lg);
+    max-width:380px;
+    width:100%;
+    max-height:70vh;
+    overflow-y:auto;
+    padding:20px 22px;
+  }
+  .notif-modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .notif-modal-head h3{font-size:16px; font-weight:600;}
+  .modal-close{
+    width:28px; height:28px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text-soft);
+    font-size:14px;
+  }
+  .modal-close:hover{background:var(--parchment); color:var(--ink);}
+  .notif-item{
+    display:flex;
+    gap:11px;
+    padding:11px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .notif-item:last-child{border-bottom:none;}
+  .notif-icon{
+    width:32px; height:32px;
+    border-radius:50%;
+    background:var(--parchment);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:15px;
+    flex:none;
+  }
+  .notif-item .txt{font-size:13.5px;}
+  .notif-item .txt b{display:block; color:var(--ink); font-weight:600;}
+  .notif-item .txt .sub{display:block; color:var(--text-soft); font-size:12px; margin-top:2px;}
+
+  /* ---------- mascot ---------- */
+  .mascot-wrap{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    z-index:150;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:10px;
+    pointer-events:none;
+  }
+  .mascot-bot{
+    width:64px;
+    height:64px;
+    animation:mascotJump 1.6s ease-in-out infinite;
+    cursor:grab;
+    pointer-events:auto;
+    touch-action:none;
+    transform-origin:50% 100%;
+  }
+  .mascot-bot svg{width:100%; height:100%; display:block;}
+  @keyframes mascotJump{
+    0%{ transform:translateY(0) scale(1,1) rotate(-2deg); }
+    12%{ transform:translateY(2px) scale(1.08,0.86) rotate(-2deg); }
+    38%{ transform:translateY(-24px) scale(0.95,1.08) rotate(2deg); }
+    55%{ transform:translateY(-24px) scale(0.95,1.08) rotate(3deg); }
+    75%{ transform:translateY(1px) scale(1.06,0.9) rotate(-1deg); }
+    100%{ transform:translateY(0) scale(1,1) rotate(-2deg); }
+  }
+  .mascot-bot.grabbed{
+    animation:mascotWiggle .28s ease-in-out infinite;
+    cursor:grabbing;
+  }
+  @keyframes mascotWiggle{
+    0%,100%{ transform:rotate(-9deg) scale(1.06); }
+    50%{ transform:rotate(9deg) scale(1.06); }
+  }
+  .mascot-bot.landed{
+    animation:mascotLand .35s ease;
+  }
+  @keyframes mascotLand{
+    0%{ transform:scale(1.15,0.75); }
+    55%{ transform:scale(0.9,1.15); }
+    100%{ transform:scale(1,1); }
+  }
+  .mascot-bubble{
+    background:var(--surface);
+    color:var(--ink);
+    font-size:13px;
+    font-weight:600;
+    padding:9px 14px;
+    border-radius:var(--radius-md);
+    box-shadow:var(--shadow-md);
+    position:relative;
+    opacity:0;
+    transform:translateY(6px) scale(.94);
+    transition:opacity .25s ease, transform .25s ease;
+    white-space:nowrap;
+  }
+  .mascot-bubble::after{
+    content:"";
+    position:absolute;
+    bottom:-6px; right:22px;
+    width:12px; height:12px;
+    background:var(--surface);
+    transform:rotate(45deg);
+  }
+  .mascot-bubble.show{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+
+  .mascot-info-card{
+    width:100%;
+    max-width:300px;
+    background:var(--surface);
+    color:var(--text);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-lg);
+    padding:20px 20px 20px;
+    font-size:13px;
+    line-height:1.6;
+  }
+  .mic-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .mic-avatar{
+    width:34px; height:34px;
+    border-radius:50%;
+    background:#2FBFA0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:none;
+    overflow:hidden;
+  }
+  .mic-avatar svg{width:24px; height:24px;}
+  .mic-title{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+  }
+  .mic-title b{font-size:13.5px; color:var(--ink); font-weight:700;}
+  .mic-status{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    font-size:11px;
+    color:var(--success);
+  }
+  .mic-status .dot{width:6px; height:6px; border-radius:50%; background:var(--success); flex:none;}
+  .mascot-info-close{
+    width:22px; height:22px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text-soft);
+    font-size:12px;
+    flex:none;
+    background:var(--parchment);
+  }
+  .mascot-info-close:hover{color:var(--ink);}
+  .mic-message{
+    background:var(--parchment);
+    border-radius:var(--radius-sm);
+    padding:12px 14px;
+    font-size:13px;
+    line-height:1.6;
+    color:var(--text);
+    margin-bottom:14px;
+  }
+  .mic-message b{color:var(--brass); font-weight:700;}
+  .mascot-info-btn{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:6px;
+    background:var(--brass);
+    color:var(--navy);
+    font-weight:700;
+    font-size:13px;
+    padding:10px 0;
+    border-radius:var(--radius-pill);
+    text-decoration:none;
+  }
+  .mascot-info-btn:hover{background:var(--brass-light);}
+
+  /* ---------- chat ---------- */
+  .chat-wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding-top:20px;
+  }
+  .chat-box{
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);
+    display:flex;
+    flex-direction:column;
+    height:60vh;
+    overflow:hidden;
+  }
+  .chat-messages{
+    flex:1;
+    overflow-y:auto;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .chat-msg{
+    display:flex;
+    gap:9px;
+    max-width:82%;
+  }
+  .chat-msg.mine{
+    align-self:flex-end;
+    flex-direction:row-reverse;
+  }
+  .chat-msg-avatar{
+    width:28px; height:28px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-size:11px;
+    font-family:'Fraunces', serif;
+    flex:none;
+  }
+  .chat-msg-bubble{
+    background:var(--parchment);
+    border-radius:var(--radius-md);
+    padding:8px 13px;
+    font-size:13.5px;
+  }
+  .chat-msg.mine .chat-msg-bubble{
+    background:var(--ink-fill);
+    color:#fff;
+  }
+  .chat-msg-name{
+    font-size:11px;
+    font-weight:700;
+    color:var(--brass);
+    margin-bottom:2px;
+  }
+  .chat-msg.mine .chat-msg-name{color:#fff; opacity:.85;}
+  .chat-msg-text{white-space:pre-wrap; word-break:break-word; line-height:1.5;}
+  .chat-input-row{
+    display:flex;
+    gap:10px;
+    padding:12px 16px;
+    border-top:1px solid var(--line);
+    position:relative;
+  }
+  .chat-input-row input{
+    flex:1;
+    padding:10px 15px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-pill);
+    font-size:14px;
+    background:var(--surface);
+    color:var(--text);
+  }
+  .chat-input-row input:focus{outline:2px solid var(--brass); outline-offset:1px; border-color:var(--brass);}
+  .emoji-btn{
+    width:38px; height:38px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:var(--surface);
+    font-size:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:none;
+  }
+  .emoji-btn:hover{border-color:var(--brass);}
+  .emoji-picker{
+    display:none;
+    grid-template-columns:repeat(7, 1fr);
+    gap:4px;
+    position:absolute;
+    bottom:60px;
+    left:16px;
+    width:266px;
+    max-height:210px;
+    overflow-y:auto;
+    background:var(--surface);
+    border-radius:var(--radius-md);
+    box-shadow:var(--shadow-lg);
+    padding:10px;
+    z-index:20;
+  }
+  .emoji-picker.open{display:grid;}
+  .emoji-picker button{
+    font-size:19px;
+    padding:6px 0;
+    border-radius:6px;
+  }
+  .emoji-picker button:hover{background:var(--parchment);}
+
+  /* ---------- admin panel ---------- */
+  .admin-tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .admin-tab{
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-soft);
+    padding:9px 4px 10px;
+    border-bottom:2px solid transparent;
+    margin-right:14px;
+  }
+  .admin-tab:hover{color:var(--ink);}
+  .admin-tab.active{color:var(--ink); border-bottom-color:var(--brass);}
+  .admin-panel-body{
+    max-height:50vh;
+    overflow-y:auto;
+  }
+  .admin-user-list{
+    display:flex;
+    flex-direction:column;
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    overflow:hidden;
+  }
+  .admin-user-row{
+    background:var(--surface);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:12px 14px;
+  }
+  .admin-user-info{display:flex; flex-direction:column; gap:2px; min-width:0;}
+  .admin-user-info b{font-size:13.5px; color:var(--ink);}
+  .admin-user-info span{font-size:11.5px; color:var(--text-soft);}
+  .admin-user-row.is-blocked{background:#FBF2EF;}
+  [data-theme="dark"] .admin-user-row.is-blocked{background:#2E211D;}
+  .admin-stat-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+  }
+  .admin-stat-grid .stat-box{border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border-right:none;}
+  @media (max-width:480px){ .admin-stat-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:480px){
+    .mascot-wrap{ bottom:14px; right:14px; }
+    .mascot-bot{ width:52px; height:52px; }
+    .mascot-bubble{ font-size:12px; padding:7px 12px; }
+  }
+  @media print{ .mascot-wrap{display:none !important;} }
+
+  .role-badge{
+    display:inline-block;
+    font-size:12px;
+    font-weight:600;
+    color:#fff;
+    padding:3px 12px;
+    border-radius:var(--radius-pill);
+    vertical-align:middle;
+    margin-left:6px;
+  }
+  @media (max-width:760px){
+    .nav-link span{display:none;}
+    .user-chip .who{display:none;}
+    .site-nav{gap:16px;}
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    display:grid;
+    grid-template-columns:1.15fr 0.85fr;
+    gap:44px;
+    align-items:center;
+    padding:44px 0 50px;
+    margin-bottom:20px;
+  }
+  @media (max-width:760px){ .hero{grid-template-columns:1fr;} }
+  .hero-eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:12.5px;
+    color:var(--brass);
+    font-weight:600;
+    background:var(--parchment);
+    border-radius:var(--radius-pill);
+    padding:7px 16px;
+    margin-bottom:18px;
+  }
+  .hero-copy h1{
+    font-size:34px;
+    font-weight:600;
+    line-height:1.22;
+    max-width:520px;
+  }
+  .hero-copy h1 .accent{color:var(--brass);}
+  .hero-copy p{
+    color:var(--text-soft);
+    margin-top:14px;
+    font-size:15px;
+    max-width:440px;
+  }
+  .hero-ctas{
+    display:flex;
+    gap:12px;
+    margin-top:26px;
+    flex-wrap:wrap;
+  }
+  .hero-visual{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .hero-illustration-panel{
+    width:100%;
+    max-width:320px;
+    border-radius:var(--radius-lg);
+    background:linear-gradient(135deg, var(--navy), var(--navy-2));
+    box-shadow:var(--shadow-lg);
+    padding:30px 24px 46px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero-illustration-panel::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at 82% 6%, rgba(201,168,85,.28), transparent 60%);
+  }
+  .book-illustration{
+    width:100%;
+    position:relative;
+    z-index:1;
+  }
+  .hero-stats-card{
+    width:100%;
+    max-width:258px;
+    margin-top:-36px;
+    border-radius:var(--radius-md);
+    background:var(--surface);
+    box-shadow:var(--shadow-lg);
+    padding:16px 18px;
+    position:relative;
+    z-index:2;
+  }
+  .hero-stats-card .t{
+    font-size:12px;
+    color:var(--text-soft);
+    margin-bottom:10px;
+  }
+  .hero-stat{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:8px 0;
+    border-top:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .hero-stat:first-of-type{border-top:none; padding-top:0;}
+  .hero-stat b{
+    font-family:'Fraunces', serif;
+    color:var(--ink);
+    font-size:15.5px;
+  }
+
+  /* ---------- faq ---------- */
+  .faq-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin:8px 0 44px;
+  }
+  .faq-item{
+    background:var(--surface);
+    border-radius:var(--radius-md);
+    box-shadow:var(--shadow-sm);
+    overflow:hidden;
+  }
+  .faq-q{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:16px 20px;
+    font-size:14.5px;
+    font-weight:600;
+    color:var(--ink);
+    text-align:left;
+    background:none;
+  }
+  .faq-icon{
+    font-size:19px;
+    color:var(--brass);
+    transition:transform .2s ease;
+    flex:none;
+  }
+  .faq-item.open .faq-icon{transform:rotate(45deg);}
+  .faq-a{
+    max-height:0;
+    overflow:hidden;
+    transition:max-height .25s ease;
+  }
+  .faq-item.open .faq-a{max-height:240px;}
+  .faq-a p{
+    padding:0 20px 16px;
+    font-size:13.5px;
+    color:var(--text-soft);
+    line-height:1.6;
+    margin:0;
+  }
+
+  /* ---------- leaderboard ---------- */
+  .leaderboard-grid{
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);
+    padding:4px 20px;
+    margin-bottom:24px;
+  }
+  .lb-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .lb-row:last-child{border-bottom:none;}
+  .lb-row.is-me{
+    background:var(--parchment);
+    margin:0 -20px;
+    padding:14px 20px;
+    border-radius:var(--radius-md);
+    border-bottom:none;
+  }
+  .lb-rank{
+    width:30px;
+    text-align:center;
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:16px;
+    color:var(--text-soft);
+    flex:none;
+  }
+  .lb-rank.medal{font-size:21px;}
+  .lb-avatar{
+    width:36px; height:36px;
+    border-radius:50%;
+    background:var(--ink-fill);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-size:13px;
+    font-family:'Fraunces', serif;
+    flex:none;
+  }
+  .lb-info{flex:1; min-width:0;}
+  .lb-info b{font-size:14px; color:var(--ink); display:block;}
+  .lb-info span{font-size:12px; color:var(--text-soft);}
+  .lb-stats{text-align:right; flex:none;}
+  .lb-stats .certs{font-family:'Fraunces', serif; font-weight:700; color:var(--ink); font-size:15px;}
+  .lb-stats .avg{font-size:11.5px; color:var(--text-soft);}
+
+  /* ---------- review form & reviews page ---------- */
+  .review-form{
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);
+    padding:22px 20px;
+    margin:0 auto 32px;
+    max-width:460px;
+    text-align:center;
+  }
+  .review-form h3{font-size:16px; margin-bottom:4px;}
+  .review-form .rf-sub{font-size:13px; color:var(--text-soft); margin-bottom:14px;}
+  .star-picker{
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    margin-bottom:14px;
+  }
+  .star-btn{
+    font-size:28px;
+    line-height:1;
+    color:var(--line);
+    transition:transform .12s ease, color .12s ease;
+  }
+  .star-btn:hover{transform:scale(1.15);}
+  .star-btn.on{color:var(--brass);}
+  .review-form textarea{
+    width:100%;
+    min-height:76px;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    font-size:14px;
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--surface);
+    color:var(--text);
+    resize:vertical;
+    margin-bottom:12px;
+  }
+  .review-form textarea:focus{outline:2px solid var(--brass); outline-offset:1px; border-color:var(--brass);}
+  .review-done{
+    font-size:14px;
+    color:var(--success);
+    font-weight:600;
+  }
+
+  .reviews-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-bottom:24px;
+  }
+  .review-card{
+    background:var(--surface);
+    border-radius:var(--radius-md);
+    box-shadow:var(--shadow-sm);
+    padding:18px 20px;
+  }
+  .review-card-top{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    margin-bottom:10px;
+  }
+  .review-avatar{
+    width:36px; height:36px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-size:13px;
+    font-family:'Fraunces', serif;
+    flex:none;
+  }
+  .review-card-top .who{flex:1; min-width:0;}
+  .review-card-top .who b{font-size:14px; color:var(--ink); display:block;}
+  .review-card-top .who span{font-size:12px; color:var(--text-soft);}
+  .review-card-stars{color:var(--brass); font-size:13px; letter-spacing:2px; flex:none;}
+  .review-card-text{
+    font-size:14px;
+    color:var(--text);
+    line-height:1.6;
+    font-style:italic;
+  }
+
+  /* ---------- footer ---------- */
+  .site-footer{
+    margin:50px -24px -80px;
+    background:var(--navy);
+    border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+    padding-top:34px;
+  }
+  .footer-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+    padding-bottom:28px;
+  }
+  .footer-brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .footer-brand .brand-name{color:#fff;}
+  .footer-brand .footer-tagline{font-size:12px; color:#AEB6C9; margin-top:2px;}
+  .footer-rights{
+    font-size:12.5px;
+    color:#B8BFD1;
+    text-align:center;
+    flex:1;
+  }
+  .footer-bottom{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+    flex-wrap:wrap;
+    padding-bottom:26px;
+    font-size:12.5px;
+    color:#B8BFD1;
+  }
+  .social-icons{display:flex; gap:12px;}
+  .social-icon{
+    width:32px; height:32px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.18);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#B8BFD1;
+    text-decoration:none;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .social-icon:hover{
+    background:var(--brass);
+    border-color:var(--brass);
+    color:var(--navy);
+  }
+  .social-icon svg{width:15px; height:15px;}
+
+  /* ---------- role pills ---------- */
+  .role-pills{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .role-pill{
+    flex:1;
+    padding:10px 8px;
+    font-size:13px;
+    font-weight:600;
+    border:1px solid var(--line);
+    border-radius:var(--radius-pill);
+    color:var(--text-soft);
+    background:var(--surface);
+    text-align:center;
+  }
+  .role-pill:hover{border-color:var(--brass);}
+  .role-pill.active{
+    border-color:var(--ink-fill);
+    background:var(--ink-fill);
+    color:#fff;
+  }
+
+  /* ---------- certificates page ---------- */
+  .certs-page-grid{
+    display:flex;
+    flex-direction:column;
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);
+    padding:4px 20px;
+    margin-bottom:24px;
+  }
+
+  /* ---------- mobile ---------- */
+  .role-pill{ min-width:88px; }
+  .result-row, .cert-row{ flex-wrap:wrap; gap:8px; }
+  .profile-head{ flex-wrap:wrap; gap:14px; }
+  .cert-footer{ flex-wrap:wrap; gap:14px; }
+
+  @media (max-width:760px){
+    .app{ padding:0 16px 60px; }
+    .topbar{ padding:14px 16px; }
+    .hero-copy h1{ font-size:27px; max-width:none; }
+    .hero-copy p{ max-width:none; }
+    .stat-row{ grid-template-columns:repeat(2,1fr); }
+    .stat-box{ border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .stat-box:last-child{ border-bottom:none; }
+    .certificate-inner{ padding:34px 20px 28px; }
+    .cert-name{ font-size:24px; min-width:0; }
+    .cert-title{ font-size:28px; }
+  }
+
+  @media (max-width:480px){
+    .brand-name{ display:none; }
+    .topbar-inner{ gap:10px; }
+    .site-nav{ gap:8px; }
+    .app{ padding:0 12px 50px; }
+    .hero{ padding:28px 0 36px; }
+    .hero-eyebrow{ font-size:11.5px; padding:6px 12px; }
+    .hero-copy h1{ font-size:23px; }
+    .hero-ctas{ flex-direction:column; }
+    .hero-ctas .btn{ width:100%; }
+    .section-head{ flex-wrap:wrap; gap:6px; }
+    .quiz-head{ flex-wrap:wrap; gap:8px; }
+    .q-text{ font-size:19px; }
+    .result-actions{ flex-direction:column; }
+    .result-actions .btn{ width:100%; }
+    .cert-actions{ flex-direction:column; }
+    .cert-actions .btn{ width:100%; }
+    .cert-form{ flex-direction:column; }
+    .role-pills{ flex-direction:column; }
+    .role-pill{ min-width:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">BS</span>
+      <span class="brand-name">Bilim Sinovi</span>
+    </div>
+    <div class="topbar-mid" id="topbarNav"></div>
+    <div class="topbar-side" id="topbarRight"></div>
+  </div>
+</div>
+
+<div class="app" id="app"></div>
+
+<div class="modal-backdrop" id="notifBackdrop" onclick="closeNotifModal()">
+  <div class="notif-modal" onclick="event.stopPropagation()">
+    <div class="notif-modal-head">
+      <h3>Bildirishnomalar</h3>
+      <button class="modal-close" onclick="closeNotifModal()">✕</button>
+    </div>
+    <div id="notifModalBody" class="notif-modal-body"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="adminAuthBackdrop" onclick="closeAdminAuth()">
+  <div class="notif-modal" onclick="event.stopPropagation()">
+    <div class="notif-modal-head">
+      <h3>Admin panel</h3>
+      <button class="modal-close" onclick="closeAdminAuth()">✕</button>
+    </div>
+    <div class="field">
+      <label>Parolni kiriting</label>
+      <input id="adminPwInput" type="password" placeholder="Parol" onkeydown="if(event.key==='Enter') checkAdminPassword()">
+    </div>
+    <div id="adminAuthError" class="hint-line weak"></div>
+    <button class="btn primary" style="width:100%;" onclick="checkAdminPassword()">Kirish</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="userProfileBackdrop" onclick="closeUserProfile()">
+  <div class="notif-modal" onclick="event.stopPropagation()">
+    <div class="notif-modal-head">
+      <h3>Profil</h3>
+      <button class="modal-close" onclick="closeUserProfile()">✕</button>
+    </div>
+    <div id="userProfileBody" class="notif-modal-body"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="chatOnlineBackdrop" onclick="closeChatOnlineList()">
+  <div class="notif-modal" onclick="event.stopPropagation()">
+    <div class="notif-modal-head">
+      <h3>Chatda kimlar bor</h3>
+      <button class="modal-close" onclick="closeChatOnlineList()">✕</button>
+    </div>
+    <div id="chatOnlineListBody" class="notif-modal-body"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="adminPanelBackdrop" onclick="closeAdminPanel()">
+  <div class="notif-modal" style="max-width:600px;" onclick="event.stopPropagation()">
+    <div class="notif-modal-head">
+      <h3>Admin panel</h3>
+      <button class="modal-close" onclick="closeAdminPanel()">✕</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab" data-tab="users" onclick="switchAdminTab('users')">Foydalanuvchilar</button>
+      <button class="admin-tab" data-tab="stats" onclick="switchAdminTab('stats')">Statistika</button>
+      <button class="admin-tab" data-tab="popular" onclick="switchAdminTab('popular')">Ommabop testlar</button>
+    </div>
+    <div id="adminPanelBody" class="admin-panel-body"></div>
+  </div>
+</div>
+
+<div class="mascot-wrap" id="mascotWrap" style="display:none;">
+  <div class="mascot-bubble" id="mascotBubble">Xush kelibsiz! 👋</div>
+  <div class="mascot-bot" id="mascotBot">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <line x1="38" y1="30" x2="33" y2="13" stroke="#2FBFA0" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="33" cy="11" r="4" fill="#2FBFA0"/>
+      <ellipse cx="50" cy="58" rx="34" ry="30" fill="#2FBFA0"/>
+      <ellipse cx="50" cy="60" rx="22" ry="18" fill="#0E1B22"/>
+      <ellipse cx="42" cy="58" rx="4" ry="6" fill="#FFE79A"/>
+      <ellipse cx="58" cy="58" rx="4" ry="6" fill="#FFE79A"/>
+      <ellipse cx="34" cy="89" rx="8" ry="4" fill="#1F9C82"/>
+      <ellipse cx="66" cy="89" rx="8" ry="4" fill="#1F9C82"/>
+    </svg>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="mascotInfoBackdrop" onclick="closeMascotInfo()">
+  <div class="mascot-info-card" id="mascotInfoCard" onclick="event.stopPropagation()">
+    <div class="mic-header">
+      <span class="mic-avatar">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="50" cy="55" rx="30" ry="26" fill="#0E1B22"/>
+          <ellipse cx="41" cy="53" rx="5" ry="7" fill="#FFE79A"/>
+          <ellipse cx="59" cy="53" rx="5" ry="7" fill="#FFE79A"/>
+        </svg>
+      </span>
+      <div class="mic-title">
+        <b>AI yordamchi</b>
+        <span class="mic-status"><span class="dot"></span>Onlayn</span>
+      </div>
+      <button class="mascot-info-close" onclick="closeMascotInfo()">✕</button>
+    </div>
+    <div class="mic-message">Men <b>Maxmudov Bekzod</b> tomonidan yaratilganman. Nima savolingiz bo'lsa, Telegram orqali aloqaga chiqing:</div>
+    <a href="https://t.me/mahmudov_bekzod" target="_blank" rel="noopener" class="mascot-info-btn">✈️ @mahmudov_bekzod</a>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   FIREBASE SOZLAMALARI — bu yerga o'zingizning Firebase loyihangiz
+   konfiguratsiyasini qo'ying (Firebase Console → Project settings
+   → General → Your apps → SDK setup and configuration).
+   ================================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyAtkjSvHe89SwrIo7zMEBwwvjYvwB8iD1U",
+  authDomain: "bilim-sinovi.firebaseapp.com",
+  projectId: "bilim-sinovi",
+  storageBucket: "bilim-sinovi.firebasestorage.app",
+  messagingSenderId: "524356235113",
+  appId: "1:524356235113:web:a9aa94d214945e8e1cd7f8"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Foydalanuvchi shunchaki "username" kiritadi, lekin Firebase Authentication
+// email talab qiladi — shu sabab ichkarida soxta domen bilan email yasaymiz.
+const EMAIL_DOMAIN = "bilimsinovi.local";
+function usernameToEmail(u){ return u.toLowerCase() + "@" + EMAIL_DOMAIN; }
+function isValidUsername(u){ return /^[a-z0-9_.]{3,}$/i.test(u); }
+
+async function fetchAllAccounts(){
+  const obj = {};
+  try{
+    const snap = await db.collection("accounts").get();
+    snap.forEach(d=>{ obj[d.id] = d.data(); });
+  }catch(e){ console.error("Hisoblarni yuklashda xatolik:", e); }
+  return obj;
+}
+
+/* ---------------- online holati (heartbeat) ---------------- */
+const HEARTBEAT_INTERVAL_MS = 45000;
+const ONLINE_THRESHOLD_MS = 90000;
+let heartbeatTimer = null;
+
+function sendHeartbeat(username){
+  db.collection("accounts").doc(username).set(
+    {lastActive: firebase.firestore.FieldValue.serverTimestamp()},
+    {merge:true}
+  ).catch(e=>console.error("Heartbeat xatosi:", e));
+}
+function startHeartbeat(username){
+  sendHeartbeat(username);
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = setInterval(()=>sendHeartbeat(username), HEARTBEAT_INTERVAL_MS);
+}
+function stopHeartbeat(){
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+}
+function toJsDate(ts){
+  if(!ts) return null;
+  if(typeof ts.toDate === "function") return ts.toDate();
+  if(ts.seconds) return new Date(ts.seconds*1000);
+  return null;
+}
+function isUserOnline(a){
+  const d = toJsDate(a && a.lastActive);
+  if(!d) return false;
+  return (Date.now() - d.getTime()) < ONLINE_THRESHOLD_MS;
+}
+
+function startDmConversationsWatcher(){
+  if(state.dmConversationsUnsub) return;
+  state.dmConversationsUnsub = db.collection("conversations")
+    .where("participants","array-contains", state.currentUser)
+    .onSnapshot(snap=>{
+      const list = [];
+      snap.forEach(doc=>{
+        const d = doc.data();
+        const peer = (d.participants||[]).find(p=>p!==state.currentUser);
+        if(!peer) return;
+        const readAt = (d.readBy && d.readBy[state.currentUser]) ? toJsDate(d.readBy[state.currentUser]) : null;
+        const lastAt = toJsDate(d.lastMessageAt);
+        const unread = !!(d.lastSender && d.lastSender!==state.currentUser && lastAt && (!readAt || lastAt.getTime()>readAt.getTime()));
+        list.push({
+          id: doc.id,
+          peerUsername: peer,
+          peerName: (state.accounts[peer] && state.accounts[peer].fullName) || peer,
+          lastMessage: d.lastMessage || "",
+          lastMessageAt: lastAt,
+          unread
+        });
+      });
+      list.sort((a,b)=>(b.lastMessageAt?b.lastMessageAt.getTime():0) - (a.lastMessageAt?a.lastMessageAt.getTime():0));
+      state.dmConversations = list;
+      state.dmUnreadCount = list.filter(c=>c.unread).length;
+      if(document.getElementById("topbarRight")) renderTopbar();
+    }, e=>console.error("Suhbatlarni kuzatishda xatolik:", e));
+}
+function stopDmConversationsWatcher(){
+  if(state.dmConversationsUnsub){ state.dmConversationsUnsub(); state.dmConversationsUnsub = null; }
+  state.dmConversations = [];
+  state.dmUnreadCount = 0;
+}
+
+/* ---------------- data ---------------- */
+const TESTS = [
+  {
+    id:"it",
+    category:"Kompyuter savodxonligi",
+    title:"IT asoslari",
+    duration:11,
+    color:"#2F5FA8",
+    icon:"&lt;/&gt;",
+    desc:"Kompyuter va internet asoslari, dasturiy ta'minot, fayl tizimi va boshqa muhim mavzular.",
+    questions:[
+      {q:"CPU nima uchun javob beradi?", options:["Ma'lumotlarni saqlash","Hisoblash va buyruqlarni bajarish","Tasvirni chiqarish","Internetga ulanish"], correct:1},
+      {q:"1 bayt necha bitdan iborat?", options:["4 bit","16 bit","8 bit","2 bit"], correct:2},
+      {q:"Quyidagilardan qaysi biri operatsion tizim emas?", options:["Windows","Linux","Photoshop","macOS"], correct:2},
+      {q:"RAM xotirasining asosiy xususiyati nima?", options:["Doimiy saqlaydi","O'chirilganda ma'lumot yo'qoladi","Faqat o'qish uchun","Video kartaga tegishli"], correct:1},
+      {q:"HTML nima uchun ishlatiladi?", options:["Web sahifa tuzilishini yaratish","Ma'lumotlar bazasini boshqarish","Rasm tahrirlash","Video montaj"], correct:0},
+      {q:"Quyidagilardan qaysi biri qidiruv tizimi?", options:["Google","Excel","Windows","Bluetooth"], correct:0},
+      {q:"IP manzil nima vazifani bajaradi?", options:["Faylni siqadi","Qurilmani tarmoqda aniqlaydi","Ovozni kuchaytiradi","Ekran o'lchamini belgilaydi"], correct:1},
+      {q:"Antivirus dasturi nima uchun kerak?", options:["Internetni tezlashtirish uchun","Zararli dasturlardan himoya qilish uchun","Fayllarni siqish uchun","Batareyani tejash uchun"], correct:1},
+      {q:"Fayl kengaytmasi (extension) nima uchun kerak?", options:["Fayl hajmini ko'rsatish uchun","Fayl turini aniqlash uchun","Faylni himoyalash uchun","Faylni tezlashtirish uchun"], correct:1},
+      {q:"USB porti nima uchun ishlatiladi?", options:["Faqat quvvatlash uchun","Tashqi qurilmalarni ulash uchun","Ekranni yoqish uchun","Ovozni kuchaytirish uchun"], correct:1},
+      {q:"Bulutli saqlash (cloud storage) nima?", options:["Kompyuterning ichki xotirasi","Internet orqali masofaviy serverlarda saqlash","Faqat rasm saqlaydigan dastur","Videoo'yin turi"], correct:1},
+      {q:"Brauzer (browser) nima uchun ishlatiladi?", options:["Fayllarni siqish uchun","Veb-sahifalarni ko'rish uchun","Musiqa yozish uchun","Antivirus skanerlash uchun"], correct:1},
+      {q:"Wi-Fi nima?", options:["Simsiz internet aloqasi texnologiyasi","Kompyuter viruslari turi","Fayl formati","Dasturlash tili"], correct:0},
+      {q:"Piksel nima?", options:["Dasturiy xatolik","Ekrandagi eng kichik nuqta","Fayl kengaytmasi","Internet tezligi birligi"], correct:1},
+      {q:"Backup (zaxira nusxa) nima uchun kerak?", options:["Kompyuterni tezlashtirish uchun","Ma'lumotlar yo'qolganda tiklash uchun","Ekran o'lchamini o'zgartirish uchun","Dasturlarni o'chirish uchun"], correct:1}
+    ]
+  },
+  {
+    id:"tarix",
+    category:"Ijtimoiy fanlar",
+    title:"Jahon tarixi",
+    duration:13,
+    color:"#9C6B2E",
+    icon:"&#127963;",
+    desc:"Dunyo tarixining muhim voqealari, davlatlar va sivilizatsiyalar tarixi.",
+    questions:[
+      {q:"Ikkinchi jahon urushi qaysi yilda tugagan?", options:["1943","1945","1939","1950"], correct:1},
+      {q:"Buyuk Ipak yo'li asosan nimalarni bog'lagan?", options:["Yevropa va Amerikani","Osiyo va Yevropani savdo orqali","Afrika qit'asini ichki qismini","Faqat dengiz yo'llarini"], correct:1},
+      {q:"Qadimgi Misr sivilizatsiyasi qaysi daryo bo'yida rivojlangan?", options:["Ganga","Nil","Amudaryo","Tigr"], correct:1},
+      {q:"Renessans davri qaysi qit'ada boshlangan?", options:["Osiyo","Afrika","Yevropa","Avstraliya"], correct:2},
+      {q:"Amerika qit'asini Yevropaliklar uchun kim kashf etgan deb hisoblanadi?", options:["Marko Polo","Xristofor Kolumb","Vasko da Gama","Magellan"], correct:1},
+      {q:"Sanoat inqilobi asosan qaysi davrda boshlangan?", options:["XVIII asr","XII asr","XX asr","XV asr"], correct:0},
+      {q:"Birlashgan Millatlar Tashkiloti qachon tashkil etilgan?", options:["1945","1919","1939","1960"], correct:0},
+      {q:"Movaraunnahrda Amir Temur davlati poytaxti qaysi shahar bo'lgan?", options:["Buxoro","Xiva","Samarqand","Toshkent"], correct:2},
+      {q:"Fransuz inqilobi qaysi yilda boshlangan?", options:["1789","1799","1804","1776"], correct:0},
+      {q:"Birinchi jahon urushi qaysi yillarda bo'lgan?", options:["1914-1918","1939-1945","1904-1905","1861-1865"], correct:0},
+      {q:"Qadimgi Yunonistonda demokratiya tushunchasi qaysi shaharda rivojlangan?", options:["Sparta","Afina","Rim","Troya"], correct:1},
+      {q:"Buyuk Aleksandr qaysi davlat hukmdori bo'lgan?", options:["Rim imperiyasi","Makedoniya","Fors","Misr"], correct:1},
+      {q:"Berlin devori qaysi yilda qulagan?", options:["1989","1991","1975","1961"], correct:0},
+      {q:"Xitoyning Buyuk devori nima maqsadda qurilgan?", options:["Savdo yo'li sifatida","Mudofaa maqsadida","Diniy ibodat uchun","Sug'orish tizimi sifatida"], correct:1},
+      {q:"Usmonlilar imperiyasi qaysi qit'alarda hukmronlik qilgan?", options:["Faqat Osiyoda","Yevropa, Osiyo va Afrikada","Faqat Afrikada","Faqat Yevropada"], correct:1}
+    ]
+  },
+  {
+    id:"math",
+    category:"Aniq fanlar",
+    title:"Matematika asoslari",
+    duration:15,
+    color:"#2F7A5D",
+    icon:"&Sigma;",
+    desc:"Matematikadan asosiy tushunchalar, masalalar va mantiqiy fikrlash.",
+    questions:[
+      {q:"12 x 8 nechaga teng?", options:["96","86","106","88"], correct:0},
+      {q:"To'g'ri burchakli uchburchakda gipotenuza qanday topiladi?", options:["Yig'indi orqali","Pifagor teoremasi orqali","Ko'paytma orqali","Ayirma orqali"], correct:1},
+      {q:"Har qanday sonni 0 ga bo'lish natijasi qanday?", options:["0","1","Aniqlanmagan","Cheksizlik"], correct:2},
+      {q:"25 ning kvadrat ildizi nechaga teng?", options:["4","5","6","25"], correct:1},
+      {q:"Aylananing yuzasi qanday formula bilan hisoblanadi?", options:["2πr","πr²","πd","4πr"], correct:1},
+      {q:"Tenglama: 3x + 6 = 15. x nechaga teng?", options:["2","3","4","5"], correct:1},
+      {q:"Foiz hisoblashda 20% dan 50 ning qiymati nechaga teng?", options:["5","10","15","20"], correct:1},
+      {q:"Natural sonlar qatoriga qaysi son kirmaydi?", options:["0","1","-3","7"], correct:2},
+      {q:"Har qanday son o'ziga ko'paytirilsa nima hosil bo'ladi?", options:["Uning kvadrati","Uning kubi","Uning ildizi","Nol"], correct:0},
+      {q:"To'g'ri to'rtburchakning yuzasi qanday topiladi?", options:["Uzunlik + eni","Uzunlik x eni","Uzunlik - eni","Uzunlik / eni"], correct:1},
+      {q:"1 dan 10 gacha bo'lgan sonlarning yig'indisi nechaga teng?", options:["45","50","55","60"], correct:2},
+      {q:"Quyidagi sonlardan qaysi biri tub son hisoblanadi?", options:["4","6","7","9"], correct:2},
+      {q:"Kasrni foizga aylantirish uchun nima qilish kerak?", options:["100 ga bo'lish","100 ga ko'paytirish","10 ga bo'lish","10 ga ko'paytirish"], correct:1},
+      {q:"Uchburchakning ichki burchaklari yig'indisi nechaga teng?", options:["90°","180°","270°","360°"], correct:1},
+      {q:"Manfiy sonni manfiy songa ko'paytirsak natija qanday bo'ladi?", options:["Manfiy","Musbat","Nol","Aniqlanmagan"], correct:1}
+    ]
+  },
+  {
+    id:"eng",
+    category:"Til bilimi",
+    title:"Ingliz tili grammatikasi",
+    duration:11,
+    color:"#6A4FA0",
+    icon:"Aa",
+    desc:"Grammatika qoidalari, so'zlar va gap tuzilishi bo'yicha testlar.",
+    questions:[
+      {q:"She ___ to school every day.", options:["go","goes","going","gone"], correct:1},
+      {q:"Present Perfect zamonining to'g'ri shakli qaysi?", options:["I go","I have gone","I am going","I went"], correct:1},
+      {q:"Qaysi so'z ko'plik sonda to'g'ri yozilgan?", options:["Childs","Childrens","Children","Childes"], correct:2},
+      {q:"'Beautiful' so'zining qarama-qarshi ma'nosi qaysi?", options:["Pretty","Ugly","Nice","Lovely"], correct:1},
+      {q:"They ___ dinner right now.", options:["is having","are having","have","has"], correct:1},
+      {q:"Qaysi gap savol shaklida to'g'ri tuzilgan?", options:["You are here?","Are you here?","You here are?","Here you are?"], correct:1},
+      {q:"'Quickly' so'zi qaysi so'z turkumiga kiradi?", options:["Noun","Adjective","Adverb","Verb"], correct:2},
+      {q:"Third conditional gaplarda qaysi tuzilma ishlatiladi?", options:["If + past simple","If + had + past participle","If + will","If + present simple"], correct:1},
+      {q:"Past Simple zamonining to'g'ri shakli qaysi?", options:["I go","I went","I have gone","I am going"], correct:1},
+      {q:"'Much' so'zi qaysi so'zlar bilan ishlatiladi?", options:["Sanaladigan otlar bilan","Sanalmaydigan otlar bilan","Faqat fe'llar bilan","Faqat sifatlar bilan"], correct:1},
+      {q:"Quyidagilardan qaysi biri modal fe'l hisoblanadi?", options:["Can","Run","Book","Table"], correct:0},
+      {q:"'I' shaxs olmoshi qaysi guruhga kiradi?", options:["Ko'plik","Birlik","Ega bo'lmagan olmosh","Ko'rsatish olmoshi"], correct:1},
+      {q:"Passive Voice (majhul nisbat) qanday tuziladi?", options:["Subject + verb","Object + be + past participle","Subject + will + verb","Subject + have + verb"], correct:1},
+      {q:"'Although' so'zi qanday ma'no bildiradi?", options:["Sabab","Qarshilik/garchi","Vaqt","Shart"], correct:1},
+      {q:"Comparative (qiyoslash) darajasida sifatlarga ko'pincha qaysi qo'shimcha qo'shiladi?", options:["-ing","-er","-ed","-ly"], correct:1}
+    ]
+  },
+  {
+    id:"fizika",
+    category:"Tabiiy fanlar",
+    title:"Fizika asoslari",
+    duration:9,
+    color:"#1F7A8C",
+    icon:"&#9883;",
+    desc:"Mexanika, elektr va issiqlik hodisalari bo'yicha asosiy tushunchalar.",
+    questions:[
+      {q:"Yorug'lik tezligi vakuumda taxminan nechaga teng?", options:["300 000 km/s","150 000 km/s","500 000 km/s","1 000 000 km/s"], correct:0},
+      {q:"Nyutonning birinchi qonuni nima haqida?", options:["Inersiya haqida","Elektr toki haqida","Issiqlik almashinuvi haqida","Yorug'lik sinishi haqida"], correct:0},
+      {q:"Suv necha gradusda qaynaydi (normal bosimda)?", options:["50°C","100°C","150°C","0°C"], correct:1},
+      {q:"Kuchning birligi nima?", options:["Joul","Nyuton","Vatt","Amper"], correct:1},
+      {q:"Elektr toki qaysi birlikda o'lchanadi?", options:["Volt","Om","Amper","Vatt"], correct:2},
+      {q:"Erkin tushish tezlanishi (g) taxminan nechaga teng?", options:["9.8 m/s²","5 m/s²","15 m/s²","20 m/s²"], correct:0},
+      {q:"Issiqlik o'tkazuvchanligi eng yuqori bo'lgan modda turi qaysi?", options:["Metallar","Gazlar","Yog'och","Plastmassa"], correct:0},
+      {q:"Tovush qaysi muhitda tarqalmaydi?", options:["Havoda","Suvda","Vakuumda","Metallda"], correct:2},
+      {q:"Energiyaning saqlanish qonuniga ko'ra energiya nima qiladi?", options:["Yo'qoladi","Bir turdan ikkinchisiga o'tadi","Doim ko'payadi","Doim kamayadi"], correct:1},
+      {q:"Om qonuni qanday formula bilan ifodalanadi?", options:["I = U/R","U = I + R","R = U + I","I = U x R"], correct:0},
+      {q:"Magnit maydonni asosan nima hosil qiladi?", options:["Faqat doimiy magnitlar","Harakatlanuvchi zaryadlar (tok)","Faqat issiqlik","Faqat yorug'lik"], correct:1},
+      {q:"Massa va og'irlik o'rtasidagi farq nimada?", options:["Ular bir xil narsa","Massa doimiy, og'irlik joylashuvga bog'liq","Og'irlik doimiy, massa o'zgaruvchan","Ikkalasi bir xil birlikda o'lchanadi"], correct:1}
+    ]
+  },
+  {
+    id:"biologiya",
+    category:"Tabiiy fanlar",
+    title:"Biologiya asoslari",
+    duration:9,
+    color:"#B5495B",
+    icon:"&#129516;",
+    desc:"Hujayra tuzilishi, organizmlar va ekologiya bo'yicha asosiy bilimlar.",
+    questions:[
+      {q:"Hujayraning nazorat markazi qanday nomlanadi?", options:["Mitoxondriya","Yadro","Ribosoma","Membrana"], correct:1},
+      {q:"Fotosintez jarayonida o'simliklar nimani ishlab chiqaradi?", options:["Karbonat angidrid","Kislorod","Azot","Vodorod"], correct:1},
+      {q:"Insonda nechta xromosoma jufti bor?", options:["23","46","21","32"], correct:0},
+      {q:"DNK qaysi hujayra qismida joylashgan?", options:["Sitoplazma","Yadro","Membrana","Vakuola"], correct:1},
+      {q:"Qaysi organ qonni butun tanaga haydaydi?", options:["Jigar","Yurak","Buyrak","O'pka"], correct:1},
+      {q:"Fermentlar asosan qanday vazifani bajaradi?", options:["Kimyoviy reaksiyalarni tezlashtiradi","Energiya hosil qiladi","Genetik ma'lumotni saqlaydi","Hujayrani himoya qiladi"], correct:0},
+      {q:"Ekosistemada energiyaning asosiy manbai nima?", options:["Suv","Quyosh","Tuproq","Havo"], correct:1},
+      {q:"Odam tanasidagi eng katta organ qaysi?", options:["Jigar","Teri","O'pka","Miya"], correct:1},
+      {q:"Antibiotiklar asosan nimaga qarshi ishlatiladi?", options:["Viruslarga","Bakteriyalarga","Zamburug'larga","Barcha mikroorganizmlarga"], correct:1},
+      {q:"Genetik xususiyatlar avloddan-avlodga qanday uzatiladi?", options:["Muskullar orqali","DNK orqali","Qon orqali","Terining rangi orqali"], correct:1},
+      {q:"Qaysi biri hujayraning energiya stansiyasi deb ataladi?", options:["Yadro","Mitoxondriya","Ribosoma","Golji apparati"], correct:1},
+      {q:"Quruqlik o'simliklariga xos bo'lmagan qism qaysi?", options:["Ildiz","Barg","Suzgich qanot","Poya"], correct:2}
+    ]
+  },
+  {
+    id:"geografiya",
+    category:"Ijtimoiy fanlar",
+    title:"Geografiya",
+    duration:9,
+    color:"#C77B2C",
+    icon:"&#127760;",
+    desc:"Qit'alar, okeanlar va dunyo geografiyasi bo'yicha umumiy bilimlar.",
+    questions:[
+      {q:"Yer yuzasining necha foizi suv bilan qoplangan?", options:["50%","71%","30%","90%"], correct:1},
+      {q:"Dunyodagi eng baland tog' cho'qqisi qaysi?", options:["Elbrus","Everest","Kilimanjaro","Mont Blan"], correct:1},
+      {q:"O'zbekiston qaysi qit'ada joylashgan?", options:["Yevropa","Osiyo","Afrika","Amerika"], correct:1},
+      {q:"Dunyodagi eng katta okean qaysi?", options:["Atlantika","Hind okeani","Tinch okean","Shimoliy Muz okeani"], correct:2},
+      {q:"Ekvator Yerni qanday qismlarga bo'ladi?", options:["Sharq va G'arb","Shimoliy va Janubiy yarim shar","Faqat Shimoliy yarim shar","Faqat quruqlik va suv"], correct:1},
+      {q:"Aholi soni bo'yicha dunyoda birinchi o'rinda qaysi davlat turadi?", options:["AQSH","Xitoy","Hindiston","Rossiya"], correct:2},
+      {q:"Dunyodagi eng uzun daryo qaysi hisoblanadi?", options:["Amazonka","Nil","Missisipi","Yangtszi"], correct:1},
+      {q:"Sahroi Kabir (Sahara) qaysi qit'ada joylashgan?", options:["Osiyo","Afrika","Avstraliya","Janubiy Amerika"], correct:1},
+      {q:"Vulqonlar asosan qayerda ko'proq uchraydi?", options:["Materik ichkarisida","Tektonik plitalar chegarasida","Faqat orollarda","Faqat qutb hududlarida"], correct:1},
+      {q:"Iqlim mintaqalari asosan nimaga bog'liq holda shakllanadi?", options:["Faqat balandlikka","Geografik kenglik va boshqa omillarga","Faqat okean oqimlariga","Faqat shamollarga"], correct:1},
+      {q:"Qaysi qit'a eng kichik hisoblanadi?", options:["Yevropa","Avstraliya","Antarktida","Janubiy Amerika"], correct:1},
+      {q:"GPS tizimi asosan nima uchun ishlatiladi?", options:["Ob-havoni bashorat qilish","Joylashuvni aniqlash","Vaqtni o'lchash","Harorat o'lchash"], correct:1}
+    ]
+  }
+];
+
+const PASS_PERCENT = 70;
+
+/* XP qoidalari */
+const XP_PER_CORRECT = 10;   // har bir to'g'ri javob uchun
+const XP_PASS_BONUS = 50;    // testdan o'tgani uchun bonus
+const XP_PERFECT_BONUS = 25; // 100% natija uchun qo'shimcha bonus
+
+function formatDuration(totalSeconds){
+  const s = Math.max(0, Math.round(totalSeconds||0));
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s%60;
+  if(h>0) return h + " soat " + m + " daq";
+  if(m>0) return m + " daq " + sec + " son";
+  return sec + " soniya";
+}
+
+const FAQS = [
+  {q:"Sertifikatni qanday olsam bo'ladi?", a:"Istalgan testni tanlab, savollarga javob bering. Agar natijangiz " + PASS_PERCENT + "% yoki undan yuqori bo'lsa, sertifikat bo'limidan uni darhol yuklab olishingiz mumkin."},
+  {q:"Testni necha marta topshirish mumkin?", a:"Har bir testni xohlagancha marta qayta topshirishingiz mumkin. Har safar yangi urinish sifatida qayd etiladi."},
+  {q:"Ma'lumotlarim xavfsizmi?", a:"Login va parolingiz faqat sizga tegishli bo'lib, boshqa foydalanuvchilar sizning natijalaringizni ko'ra olmaydi."},
+  {q:"Test vaqti tugasa nima bo'ladi?", a:"Belgilangan vaqt tugagach, test avtomatik yakunlanadi va shu paytgacha belgilagan javoblaringiz asosida natija chiqariladi."},
+  {q:"Sertifikatni chop etsam bo'ladimi?", a:"Ha, sertifikatni rasm (PNG) sifatida yuklab olishingiz yoki to'g'ridan-to'g'ri chop etishingiz mumkin."},
+  {q:"Ro'yxatdan o'tish va testlar bepulmi?", a:"Ha, ro'yxatdan o'tish, barcha testlar va sertifikatlar butunlay bepul."}
+];
+
+/* ---------------- state ---------------- */
+let state = {
+  screen:"loading",
+  authMode:"signin",
+  currentUser:null,   // username string when logged in
+  accounts:{},        // { username: {fullName, password, results:[]} }
+  testId:null,
+  qIndex:0,
+  answers:[],
+  timeLeft:0,
+  timerHandle:null,
+  userName:"",
+  testStats:null,
+  notifSeenCount:0,
+  duelUnsub:null,
+  duelId:null,
+  duelData:null,
+  duelMyIndex:0,
+  duelTimeLeft:0,
+  duelTimerHandle:null,
+  duelTimerDuelId:null,
+  duelList:[],
+  chatUnsub:null,
+  chatPresenceUnsub:null,
+  chatMessages:[],
+  chatOnlineCount:0,
+  chatOnlineUsers:[],
+  chatHeartbeatTimer:null,
+  _lastScreen:null,
+  dmUnsub:null,
+  dmConvId:null,
+  dmTargetUsername:null,
+  dmTargetName:null,
+  dmMessages:[],
+  _profileViewCache:null,
+  dmConversationsUnsub:null,
+  dmConversations:[],
+  dmUnreadCount:0
+};
+
+const SUN_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const MOON_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>`;
+const HOME_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>`;
+const LIST_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>`;
+const USER_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>`;
+const AWARD_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/></svg>`;
+const TROPHY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 5H4a3 3 0 0 0 3 4M16 5h4a3 3 0 0 1-3 4"/><path d="M12 13v4M9 21h6M8 21c0-1.1.9-2 4-2s4 .9 4 2"/></svg>`;
+const CHAT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5.1A8 8 0 1 1 21 12z"/></svg>`;
+const BELL_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5z"/><path d="M9.5 18a2.5 2.5 0 0 0 5 0"/></svg>`;
+const DUEL_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-11 11H6v-4L17 3z"/><path d="M13 7l4 4"/><path d="M3 21l4-4"/><path d="M7 21l-2-2"/></svg>`;
+const CHATROOM_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v3"/><path d="M9 20l3-3h7a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1h-8a1 1 0 0 0-1 1v9z"/></svg>`;
+
+async function loadTheme(){
+  try{
+    const res = await window.storage.get("theme", false);
+    return res && res.value ? res.value : "light";
+  }catch(e){ return "light"; }
+}
+async function saveTheme(theme){
+  try{ await window.storage.set("theme", theme, false); }catch(e){}
+}
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  state.theme = theme;
+}
+function toggleTheme(){
+  const next = state.theme==="dark" ? "light" : "dark";
+  applyTheme(next);
+  saveTheme(next);
+  render();
+}
+
+function getTest(id){ return TESTS.find(t=>t.id===id); }
+function currentAccount(){ return state.accounts[state.currentUser]; }
+function currentResults(){ const a = currentAccount(); return a ? a.results : []; }
+
+/* ---------------- storage ---------------- */
+async function init(){
+  render(); // shows loading
+  auth.onAuthStateChanged(async (user)=>{
+    if(user){
+      const username = user.email.split("@")[0];
+      const accountsSnapshot = await fetchAllAccounts();
+
+      if(accountsSnapshot[username] && accountsSnapshot[username].blocked){
+        state.currentUser = null;
+        state.accounts = accountsSnapshot;
+        state.screen = "auth";
+        state.authError = "Hisobingiz administrator tomonidan bloklangan.";
+        render();
+        auth.signOut();
+        return;
+      }
+
+      state.currentUser = username;
+      state.accounts = accountsSnapshot;
+      if(!state.accounts[username]){
+        state.accounts[username] = {fullName:username, role:null, results:[]};
+      }
+      state.screen = "home";
+      db.collection("accounts").doc(username).set(
+        {lastLogin: firebase.firestore.FieldValue.serverTimestamp()},
+        {merge:true}
+      ).catch(e=>console.error("Oxirgi kirish vaqtini yozishda xatolik:", e));
+      startHeartbeat(username);
+      startDmConversationsWatcher();
+    } else {
+      state.currentUser = null;
+      state.accounts = await fetchAllAccounts();
+      state.screen = "auth";
+      stopHeartbeat();
+      stopDmConversationsWatcher();
+    }
+    render();
+    if(user) setTimeout(showWelcomeBubble, 300);
+  });
+}
+
+/* ---------------- rendering ---------------- */
+const app = document.getElementById("app");
+
+function render(){
+  if(state._lastScreen==="chatroom" && state.screen!=="chatroom"){ leaveChatRoom(); }
+  if(state._lastScreen==="dm_chat" && state.screen!=="dm_chat"){ detachDmListener(); }
+  state._lastScreen = state.screen;
+
+  renderTopbar();
+  if(state.screen==="loading") renderLoading();
+  else if(state.screen==="auth") renderAuth();
+  else if(state.screen==="home") renderHome();
+  else if(state.screen==="quiz") renderQuiz();
+  else if(state.screen==="result") renderResult();
+  else if(state.screen==="certificate") renderCertificate();
+  else if(state.screen==="profile") renderProfile();
+  else if(state.screen==="certificates") renderCertificatesPage();
+  else if(state.screen==="leaderboard") renderLeaderboardPage();
+  else if(state.screen==="reviews") renderReviewsPage();
+  else if(state.screen==="duel_lobby") renderDuelLobby();
+  else if(state.screen==="duel_arena") renderDuelArena();
+  else if(state.screen==="duel_result") renderDuelResult();
+  else if(state.screen==="chatroom") renderChatRoom();
+  else if(state.screen==="dm_chat") renderDmChat();
+}
+
+function initials(name){
+  return (name||"").trim().split(/\s+/).slice(0,2).map(w=>w[0]?w[0].toUpperCase():"").join("") || "?";
+}
+function roleLabel(key){
+  return {talaba:"Talaba", oqituvchi:"O'qituvchi", oquvchi:"O'quvchi"}[key] || "";
+}
+function roleColor(key){
+  return {talaba:"#2F5FA8", oqituvchi:"#A9822C", oquvchi:"#2F7A5D"}[key] || "#3B4A6B";
+}
+
+function renderTopbar(){
+  const navEl = document.getElementById("topbarNav");
+  const rightEl = document.getElementById("topbarRight");
+  if(!navEl || !rightEl) return;
+
+  const loggedInScreens = ["home","quiz","result","certificate","profile","certificates","leaderboard","reviews","duel_lobby","duel_arena","duel_result","chatroom","dm_chat"];
+  const isLoggedInArea = state.currentUser && loggedInScreens.includes(state.screen);
+
+  if(isLoggedInArea){
+    navEl.innerHTML = `
+      <nav class="site-nav">
+        <button class="nav-link ${state.screen==='home'?'active':''}" onclick="goHome()">${HOME_ICON}<span>Bosh sahifa</span></button>
+        <button class="nav-link ${state.screen==='certificates'?'active':''}" onclick="goCertificatesPage()">${AWARD_ICON}<span>Sertifikatlar</span></button>
+        <button class="nav-link ${state.screen==='leaderboard'?'active':''}" onclick="goLeaderboard()">${TROPHY_ICON}<span>Reyting</span></button>
+        <button class="nav-link ${state.screen==='reviews'?'active':''}" onclick="goReviews()">${CHAT_ICON}<span>Fikrlar</span></button>
+        <button class="nav-link ${state.screen.indexOf('duel')===0?'active':''}" onclick="goDuel()">${DUEL_ICON}<span>Duel</span></button>
+        <button class="nav-link ${state.screen==='chatroom'?'active':''}" onclick="goChatRoom()">${CHATROOM_ICON}<span>Chat</span></button>
+      </nav>`;
+  } else {
+    navEl.innerHTML = `<span class="brand-tag">Online testlar va sertifikatlar</span>`;
+  }
+
+  let rightHtml = `<button class="theme-toggle-inline" onclick="toggleTheme()" aria-label="Kunduzgi/tungi rejim" title="Kunduzgi/tungi rejim">${state.theme==="dark"?SUN_ICON:MOON_ICON}</button>`;
+  if(isLoggedInArea){
+    const acc = currentAccount();
+    const hasUnread = (acc && acc.results && acc.results.length > (state.notifSeenCount||0)) || (state.dmUnreadCount>0);
+    rightHtml += `
+      <button class="notif-btn" onclick="openNotifModal()" aria-label="Bildirishnomalar" title="Bildirishnomalar">
+        ${BELL_ICON}${hasUnread ? '<span class="notif-dot"></span>' : ''}
+      </button>
+      <button class="user-chip" onclick="goProfile()">
+        <span class="avatar" style="background:${roleColor(acc.role)}">${initials(acc.fullName)}</span>
+        <span class="who"><b>${acc.fullName}</b><small>${roleLabel(acc.role)}</small></span>
+      </button>`;
+  }
+  rightEl.innerHTML = rightHtml;
+
+  const mascotWrap = document.getElementById("mascotWrap");
+  if(mascotWrap) mascotWrap.style.display = isLoggedInArea ? "flex" : "none";
+}
+
+function showWelcomeBubble(){
+  const bubble = document.getElementById("mascotBubble");
+  if(!bubble) return;
+  bubble.textContent = "Xush kelibsiz! 👋";
+  bubble.classList.add("show");
+  clearTimeout(state._bubbleTimer);
+  state._bubbleTimer = setTimeout(()=>{ bubble.classList.remove("show"); }, 4500);
+}
+
+const ADMIN_PASSWORD = "bekzod9708";
+
+function openAdminAuth(){
+  const input = document.getElementById("adminPwInput");
+  const err = document.getElementById("adminAuthError");
+  if(input) input.value = "";
+  if(err) err.textContent = "";
+  document.getElementById("adminAuthBackdrop").classList.add("open");
+  setTimeout(()=>{ if(input) input.focus(); }, 50);
+}
+function closeAdminAuth(){
+  document.getElementById("adminAuthBackdrop").classList.remove("open");
+}
+function checkAdminPassword(){
+  const input = document.getElementById("adminPwInput");
+  const err = document.getElementById("adminAuthError");
+  if(input.value === ADMIN_PASSWORD){
+    closeAdminAuth();
+    openAdminPanel();
+  } else {
+    err.textContent = "Noto'g'ri parol.";
+  }
+}
+async function openAdminPanel(){
+  document.getElementById("adminPanelBackdrop").classList.add("open");
+  state.adminTab = "users";
+  state.adminUserSearch = "";
+  document.getElementById("adminPanelBody").innerHTML = `<div class="empty-note">Yuklanmoqda...</div>`;
+  await loadAdminData();
+  renderAdminPanel();
+}
+function closeAdminPanel(){
+  document.getElementById("adminPanelBackdrop").classList.remove("open");
+}
+
+async function loadAdminData(){
+  state.adminAccounts = await fetchAllAccounts();
+  try{
+    const revSnap = await db.collection("reviews").get();
+    state.adminReviewsCount = revSnap.size;
+  }catch(e){ state.adminReviewsCount = 0; }
+}
+
+function switchAdminTab(tab){
+  state.adminTab = tab;
+  renderAdminPanel();
+}
+
+function renderAdminPanel(){
+  document.querySelectorAll(".admin-tab").forEach(b=>b.classList.toggle("active", b.dataset.tab===state.adminTab));
+  const body = document.getElementById("adminPanelBody");
+  if(state.adminTab==="stats") body.innerHTML = renderAdminStatsHtml();
+  else if(state.adminTab==="popular") body.innerHTML = renderAdminPopularHtml();
+  else body.innerHTML = renderAdminUsersHtml();
+}
+
+function renderAdminUsersHtml(){
+  return `
+    <div class="field" style="margin-bottom:14px;">
+      <input id="adminUserSearch" type="text" placeholder="Ism yoki login bo'yicha qidirish..." value="${(state.adminUserSearch||'').replace(/"/g,'&quot;')}" oninput="filterAdminUsers()">
+    </div>
+    <div id="adminUserListContainer">${buildAdminUserListHtml(state.adminUserSearch||"")}</div>
+  `;
+}
+
+function formatLastLogin(ts){
+  const d = toJsDate(ts);
+  if(!d) return "Hech qachon kirmagan";
+  return d.toLocaleString("uz-UZ", {year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"});
+}
+
+function buildAdminUserListHtml(search){
+  const accounts = state.adminAccounts || {};
+  let usernames = Object.keys(accounts).sort();
+  const term = (search||"").trim().toLowerCase();
+  if(term){
+    usernames = usernames.filter(u=>{
+      const a = accounts[u];
+      return u.toLowerCase().includes(term) || (a.fullName||"").toLowerCase().includes(term);
+    });
+  }
+  if(!usernames.length) return `<div class="empty-note">Hech narsa topilmadi.</div>`;
+  return `<div class="admin-user-list">` + usernames.map(u=>{
+    const a = accounts[u];
+    const st = userStats(a);
+    const blocked = !!a.blocked;
+    return `<div class="admin-user-row ${blocked?'is-blocked':''}">
+      <div class="admin-user-info">
+        <b>${a.fullName || u}${blocked ? ' 🚫' : ''}</b>
+        <span>${isUserOnline(a) ? '<span style="color:var(--success); font-weight:600;">🟢 Onlayn</span>' : '⚪ Offlayn'} · @${u} · ${roleLabel(a.role) || "—"} · ${st.attemptsCount} urinish · ${st.certCount} sertifikat · ${st.totalXp} XP</span>
+        <span>Oxirgi kirish: ${formatLastLogin(a.lastLogin)}</span>
+      </div>
+      <button class="btn ${blocked?'':'brass'}" style="font-size:12.5px; padding:8px 14px; flex:none;" onclick="toggleBlockUser('${u}', ${!blocked})">${blocked ? "Blokdan chiqarish" : "Bloklash"}</button>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+function filterAdminUsers(){
+  const input = document.getElementById("adminUserSearch");
+  state.adminUserSearch = input.value;
+  const container = document.getElementById("adminUserListContainer");
+  if(container) container.innerHTML = buildAdminUserListHtml(state.adminUserSearch);
+}
+
+function renderAdminStatsHtml(){
+  const list = Object.values(state.adminAccounts || {});
+  const totalUsers = list.length;
+  const totalAttempts = list.reduce((s,a)=>s+((a.results||[]).length), 0);
+  const totalCerts = list.reduce((s,a)=>s+userStats(a).certCount, 0);
+  const totalXp = list.reduce((s,a)=>s+userStats(a).totalXp, 0);
+  const blockedCount = list.filter(a=>a.blocked).length;
+  const onlineCount = list.filter(a=>isUserOnline(a)).length;
+  return `<div class="admin-stat-grid">
+    <div class="stat-box"><div class="n">${totalUsers}</div><div class="l">Foydalanuvchilar</div></div>
+    <div class="stat-box"><div class="n" style="color:var(--success);">${onlineCount}</div><div class="l">Hozir onlayn</div></div>
+    <div class="stat-box"><div class="n">${totalAttempts}</div><div class="l">Jami urinishlar</div></div>
+    <div class="stat-box"><div class="n">${totalCerts}</div><div class="l">Berilgan sertifikatlar</div></div>
+    <div class="stat-box"><div class="n">${totalXp}</div><div class="l">Jami XP</div></div>
+    <div class="stat-box"><div class="n">${state.adminReviewsCount||0}</div><div class="l">Fikrlar soni</div></div>
+    <div class="stat-box"><div class="n">${blockedCount}</div><div class="l">Bloklangan</div></div>
+  </div>`;
+}
+
+function renderAdminPopularHtml(){
+  const accounts = state.adminAccounts || {};
+  const counts = {};
+  TESTS.forEach(t=>counts[t.id]=0);
+  Object.values(accounts).forEach(a=>{
+    const seen = new Set();
+    (a.results||[]).forEach(r=>seen.add(r.testId));
+    seen.forEach(tid=>{ if(counts[tid]!=null) counts[tid]++; });
+  });
+  const rows = TESTS.map(t=>({t, count:counts[t.id]||0})).sort((a,b)=>b.count-a.count);
+  return `<div class="admin-user-list">` + rows.map((r,i)=>`
+    <div class="admin-user-row">
+      <div class="admin-user-info">
+        <b>${i+1}. ${r.t.title}</b>
+        <span>${r.t.category}</span>
+      </div>
+      <div style="font-weight:700; color:var(--ink); flex:none;">${r.count} kishi</div>
+    </div>`).join("") + `</div>`;
+}
+
+async function toggleBlockUser(username, blockedValue){
+  try{
+    await db.collection("accounts").doc(username).update({blocked: blockedValue});
+    if(state.adminAccounts[username]) state.adminAccounts[username].blocked = blockedValue;
+    if(state.adminTab==="users"){
+      const container = document.getElementById("adminUserListContainer");
+      if(container) container.innerHTML = buildAdminUserListHtml(state.adminUserSearch||"");
+    } else {
+      renderAdminPanel();
+    }
+  }catch(e){
+    alert("Xatolik: bajarilmadi.");
+    console.error(e);
+  }
+}
+
+document.addEventListener("keydown", function(e){
+  const key = e.key ? e.key.toLowerCase() : "";
+  if((e.ctrlKey || e.metaKey) && key==="a"){
+    e.preventDefault();
+    openAdminAuth();
+  }
+});
+
+function openMascotInfo(){
+  document.getElementById("mascotInfoBackdrop").classList.add("open");
+}
+function closeMascotInfo(){
+  document.getElementById("mascotInfoBackdrop").classList.remove("open");
+}
+
+function initMascotDrag(){
+  const wrap = document.getElementById("mascotWrap");
+  const bot = document.getElementById("mascotBot");
+  if(!wrap || !bot) return;
+  let dragging = false, offsetX = 0, offsetY = 0, startX = 0, startY = 0, moved = 0;
+
+  function getPoint(e){ return e.touches ? e.touches[0] : e; }
+
+  function pointerDown(e){
+    dragging = true;
+    moved = 0;
+    const rect = wrap.getBoundingClientRect();
+    const p = getPoint(e);
+    startX = p.clientX;
+    startY = p.clientY;
+    offsetX = p.clientX - rect.left;
+    offsetY = p.clientY - rect.top;
+    wrap.style.left = rect.left + "px";
+    wrap.style.top = rect.top + "px";
+    wrap.style.right = "auto";
+    wrap.style.bottom = "auto";
+    bot.classList.add("grabbed");
+    document.addEventListener("mousemove", pointerMove);
+    document.addEventListener("touchmove", pointerMove, {passive:false});
+    document.addEventListener("mouseup", pointerUp);
+    document.addEventListener("touchend", pointerUp);
+    e.preventDefault();
+  }
+
+  function pointerMove(e){
+    if(!dragging) return;
+    const p = getPoint(e);
+    moved = Math.max(moved, Math.hypot(p.clientX-startX, p.clientY-startY));
+    let x = p.clientX - offsetX;
+    let y = p.clientY - offsetY;
+    x = Math.max(4, Math.min(window.innerWidth - wrap.offsetWidth - 4, x));
+    y = Math.max(4, Math.min(window.innerHeight - wrap.offsetHeight - 4, y));
+    wrap.style.left = x + "px";
+    wrap.style.top = y + "px";
+    e.preventDefault();
+  }
+
+  function pointerUp(){
+    if(!dragging) return;
+    dragging = false;
+    bot.classList.remove("grabbed");
+    bot.classList.add("landed");
+    setTimeout(()=>bot.classList.remove("landed"), 380);
+    document.removeEventListener("mousemove", pointerMove);
+    document.removeEventListener("touchmove", pointerMove);
+    document.removeEventListener("mouseup", pointerUp);
+    document.removeEventListener("touchend", pointerUp);
+    if(moved < 6) openMascotInfo();
+  }
+
+  bot.addEventListener("mousedown", pointerDown);
+  bot.addEventListener("touchstart", pointerDown, {passive:false});
+}
+initMascotDrag();
+
+function openNotifModal(){
+  const acc = currentAccount();
+  const body = document.getElementById("notifModalBody");
+  const results = (acc && acc.results) ? acc.results.slice().reverse().slice(0,8) : [];
+  const dmList = (state.dmConversations||[]).slice(0,8);
+
+  let html = "";
+
+  if(dmList.length){
+    html += dmList.map(c=>`
+      <div class="notif-item" style="cursor:pointer;" onclick="closeNotifModal(); openDmFromNotif('${c.peerUsername}')">
+        <span class="notif-icon">${c.unread ? "💬" : "✉️"}</span>
+        <span class="txt"><b>${c.unread?"Yangi xabar: ":""}${escapeHtml(c.peerName)}</b><span class="sub">${escapeHtml((c.lastMessage||"").slice(0,60))}</span></span>
+      </div>`).join("");
+  }
+
+  if(!results.length && !dmList.length){
+    html = `<div class="empty-note">Hozircha bildirishnomalar yo'q.</div>`;
+  } else {
+    html += results.map(r=>{
+      const icon = r.passed ? "🏅" : "📝";
+      const headline = r.passed
+        ? `<b>${r.title}</b> testidan sertifikat oldingiz`
+        : `<b>${r.title}</b> testini yakunladingiz`;
+      return `<div class="notif-item">
+        <span class="notif-icon">${icon}</span>
+        <span class="txt">${headline}<span class="sub">${r.date} · ${r.percent}% · +${r.xp||0} XP</span></span>
+      </div>`;
+    }).join("");
+  }
+  body.innerHTML = html;
+
+  if(acc) state.notifSeenCount = (acc.results||[]).length;
+  document.getElementById("notifBackdrop").classList.add("open");
+  renderTopbar();
+}
+
+function openDmFromNotif(peerUsername){
+  state.dmTargetUsername = peerUsername;
+  state.dmTargetName = (state.accounts[peerUsername] && state.accounts[peerUsername].fullName) || peerUsername;
+  goDmChat();
+}
+
+function closeNotifModal(){
+  document.getElementById("notifBackdrop").classList.remove("open");
+}
+
+function goProfile(){
+  state.screen = "profile";
+  state.profileMsg = null;
+  state.pwMsg = null;
+  render();
+}
+
+function goTests(){
+  if(state.screen!=="home"){
+    state.screen = "home";
+    render();
+  }
+  setTimeout(()=>{
+    const el = document.getElementById("testsSection");
+    if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+  }, 60);
+}
+
+function goCertificatesPage(){
+  state.screen = "certificates";
+  render();
+}
+
+async function goLeaderboard(){
+  state.screen = "leaderboard";
+  render();
+  state.accounts = await fetchAllAccounts();
+  if(state.screen==="leaderboard") render();
+}
+
+function renderLoading(){
+  app.innerHTML = `<div class="loading-wrap">Yuklanmoqda...</div>`;
+}
+
+function renderAuth(){
+  const mode = state.authMode;
+  app.innerHTML = `
+  <div class="screen auth-wrap">
+    <div class="auth-head">
+      <h1>${mode==="signin" ? "Hisobingizga kiring" : "Ro'yxatdan o'ting"}</h1>
+      <p>Testlarni topshirish va sertifikat olish uchun hisobingiz bo'lishi kerak.</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab ${mode==='signin'?'active':''}" onclick="switchAuthMode('signin')">Kirish</button>
+      <button class="auth-tab ${mode==='signup'?'active':''}" onclick="switchAuthMode('signup')">Ro'yxatdan o'tish</button>
+    </div>
+    <div class="auth-card">
+      ${state.authError ? `<div class="auth-error">${state.authError}</div>` : ""}
+      ${mode==="signup" ? `
+        <div class="field">
+          <label>To'liq ism</label>
+          <input id="af_fullname" type="text" placeholder="Aliyev Sardor" value="${state.authFullName||''}">
+        </div>
+        <div class="field">
+          <label>Sizning rolingiz</label>
+          <div class="role-pills">
+            <button type="button" class="role-pill ${state.authRole==='talaba'?'active':''}" onclick="selectRole(this,'talaba')">Talaba</button>
+            <button type="button" class="role-pill ${state.authRole==='oqituvchi'?'active':''}" onclick="selectRole(this,'oqituvchi')">O'qituvchi</button>
+            <button type="button" class="role-pill ${state.authRole==='oquvchi'?'active':''}" onclick="selectRole(this,'oquvchi')">O'quvchi</button>
+          </div>
+        </div>` : ""}
+      <div class="field">
+        <label>Login</label>
+        <input id="af_username" type="text" placeholder="sardor01" value="${state.authUsername||''}" ${mode==='signup'?'oninput="checkUsernameAvailability()"':''}>
+        ${mode==='signup' ? `<div class="hint-line" id="usernameHint"></div>` : ""}
+      </div>
+      <div class="field">
+        <label>Parol</label>
+        <div class="field-pw">
+          <input id="af_password" type="password" placeholder="Kamida 6 belgi" ${mode==='signup'?'oninput="checkPasswordStrength()"':''}>
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('af_password', this)">${EYE_ICON}</button>
+        </div>
+        ${mode==='signup' ? `<div class="hint-line" id="pwHint"></div>` : ""}
+      </div>
+      ${mode==="signup" ? `
+        <div class="field">
+          <label>Parolni tasdiqlang</label>
+          <div class="field-pw">
+            <input id="af_password2" type="password" placeholder="Parolni qayta kiriting">
+            <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('af_password2', this)">${EYE_ICON}</button>
+          </div>
+        </div>` : ""}
+      <button class="btn primary auth-submit" onclick="${mode==='signin'?'doSignIn()':'doSignUp()'}">${mode==='signin'?"Kirish":"Ro'yxatdan o'tish"}</button>
+    </div>
+  </div>`;
+}
+
+function switchAuthMode(m){
+  state.authMode = m;
+  state.authError = null;
+  state.authRole = null;
+  render();
+}
+
+const EYE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_OFF_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.6 10.6 0 0 1 12 19c-7 0-11-7-11-7a19.7 19.7 0 0 1 4.2-5.2M9.9 4.2A10.4 10.4 0 0 1 12 5c7 0 11 7 11 7a19.6 19.6 0 0 1-2.3 3.1M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M1 1l22 22"/></svg>`;
+
+function togglePasswordVisibility(id, btn){
+  const input = document.getElementById(id);
+  if(!input) return;
+  if(input.type==="password"){ input.type="text"; btn.innerHTML = EYE_OFF_ICON; }
+  else { input.type="password"; btn.innerHTML = EYE_ICON; }
+}
+
+function passwordStrength(pw){
+  if(!pw) return {level:"weak", label:""};
+  if(pw.length<6) return {level:"weak", label:"Juda oson — yana urinib ko'ring. Kamida 6 belgidan iborat bo'lsin."};
+  let score = 0;
+  if(pw.length>=10) score++;
+  if(/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw)) score++;
+  if(score<=1) return {level:"weak", label:"Juda oson — yana urinib ko'ring. Katta-kichik harf va raqamlarni aralashtiring."};
+  if(score===2) return {level:"medium", label:"O'rtacha parol. Yanada qiyinroq qilish mumkin."};
+  return {level:"strong", label:"Kuchli parol."};
+}
+
+function checkPasswordStrength(){
+  const el = document.getElementById("pwHint");
+  const input = document.getElementById("af_password");
+  if(!el || !input) return;
+  const r = passwordStrength(input.value);
+  el.textContent = r.label;
+  el.className = "hint-line " + r.level;
+}
+
+function checkUsernameAvailability(){
+  const el = document.getElementById("usernameHint");
+  const input = document.getElementById("af_username");
+  if(!el || !input) return;
+  const val = input.value.trim().toLowerCase();
+  if(!val){ el.textContent = ""; el.className = "hint-line"; return; }
+  if(state.accounts[val]){
+    el.textContent = "Bu login band, boshqa username kiriting.";
+    el.className = "hint-line taken";
+  } else {
+    el.textContent = "Bu login bo'sh, ishlatishingiz mumkin.";
+    el.className = "hint-line free";
+  }
+}
+
+function selectRole(el, roleKey){
+  document.querySelectorAll(".role-pill").forEach(p=>p.classList.remove("active"));
+  el.classList.add("active");
+  state.authRole = roleKey;
+}
+
+async function doSignUp(){
+  const fullName = document.getElementById("af_fullname").value.trim();
+  const username = document.getElementById("af_username").value.trim().toLowerCase();
+  const password = document.getElementById("af_password").value;
+  const password2 = document.getElementById("af_password2").value;
+  const role = state.authRole;
+
+  if(!fullName || !username || !password){ state.authError = "Barcha maydonlarni to'ldiring."; render(); return; }
+  if(!isValidUsername(username)){ state.authError = "Login kamida 3 belgi, faqat lotin harf, raqam va pastki chiziqdan iborat bo'lsin."; render(); return; }
+  if(!role){ state.authError = "Iltimos, rolingizni tanlang (Talaba / O'qituvchi / O'quvchi)."; render(); return; }
+  const strength = passwordStrength(password);
+  if(strength.level==="weak"){ state.authError = strength.label || "Juda oson — yana urinib ko'ring."; render(); return; }
+  if(password!==password2){ state.authError = "Parollar mos kelmadi."; render(); return; }
+
+  try{
+    await auth.createUserWithEmailAndPassword(usernameToEmail(username), password);
+    await db.collection("accounts").doc(username).set({fullName, role, results:[]});
+    state.authError = null;
+    state.authRole = null;
+    // onAuthStateChanged listener handles loading accounts + switching to home
+  }catch(e){
+    if(e.code==="auth/email-already-in-use"){ state.authError = "Bu login band, boshqa username kiriting."; }
+    else if(e.code==="auth/weak-password"){ state.authError = "Parol juda oddiy, kuchliroq parol tanlang."; }
+    else if(e.code==="auth/invalid-email"){ state.authError = "Login noto'g'ri formatda."; }
+    else{ state.authError = "Xatolik yuz berdi. Qaytadan urinib ko'ring."; console.error(e); }
+    render();
+  }
+}
+
+async function doSignIn(){
+  const username = document.getElementById("af_username").value.trim().toLowerCase();
+  const password = document.getElementById("af_password").value;
+
+  try{
+    await auth.signInWithEmailAndPassword(usernameToEmail(username), password);
+    state.authError = null;
+    // onAuthStateChanged listener handles loading accounts + switching to home
+  }catch(e){
+    state.authError = "Login yoki parol noto'g'ri.";
+    render();
+  }
+}
+
+async function logout(){
+  clearInterval(state.timerHandle);
+  await auth.signOut();
+  state.authMode = "signin";
+  // onAuthStateChanged listener handles switching to the auth screen
+}
+
+async function loadTestStats(){
+  try{
+    const [reviewsSnap, accountsObj] = await Promise.all([
+      db.collection("reviews").get(),
+      fetchAllAccounts()
+    ]);
+    const acc = {};
+    TESTS.forEach(t=>{ acc[t.id] = {starSum:0, starCount:0, participants:0}; });
+
+    reviewsSnap.forEach(doc=>{
+      const d = doc.data();
+      if(acc[d.testId] && d.stars){
+        acc[d.testId].starSum += d.stars;
+        acc[d.testId].starCount += 1;
+      }
+    });
+    Object.values(accountsObj).forEach(a=>{
+      const seen = new Set();
+      (a.results||[]).forEach(r=>seen.add(r.testId));
+      seen.forEach(tid=>{ if(acc[tid]) acc[tid].participants += 1; });
+    });
+
+    const stats = {};
+    TESTS.forEach(t=>{
+      const s = acc[t.id];
+      stats[t.id] = {
+        avgStars: s.starCount ? (s.starSum/s.starCount) : null,
+        reviewCount: s.starCount,
+        participants: s.participants
+      };
+    });
+    state.testStats = stats;
+  }catch(e){
+    console.error("Test statistikasini yuklashda xatolik:", e);
+    state.testStats = {};
+  }
+}
+
+function ensureTestStats(){
+  if(state.testStats===null){
+    loadTestStats().then(()=>{ if(state.screen==="home") render(); });
+  }
+}
+
+/* ================= DUEL ================= */
+const DUEL_QUESTION_COUNT = 8;
+const DUEL_DURATION_SECONDS = 150;
+
+function buildMixedQuestionPool(count){
+  let pool = [];
+  TESTS.forEach(t=>{
+    t.questions.forEach(q=>{
+      pool.push({q:q.q, options:q.options, correct:q.correct, testId:t.id, testTitle:t.title});
+    });
+  });
+  for(let i=pool.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]] = [pool[j],pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
+function detachDuelListener(){
+  if(state.duelUnsub){ state.duelUnsub(); state.duelUnsub = null; }
+  clearInterval(state.duelTimerHandle);
+  state.duelTimerHandle = null;
+  state.duelTimerDuelId = null;
+}
+
+async function loadDuelLobby(){
+  try{
+    const snap = await db.collection("duels").orderBy("createdAt","desc").limit(30).get();
+    state.duelList = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  }catch(e){ console.error("Duel ro'yxatini yuklashda xatolik:", e); state.duelList = []; }
+}
+
+function goDuel(){
+  detachDuelListener();
+  state.duelId = null;
+  state.duelData = null;
+  state.screen = "duel_lobby";
+  render();
+  loadDuelLobby().then(()=>{
+    if(state.screen!=="duel_lobby") return;
+    const mine = state.duelList.find(d=>(d.player1===state.currentUser || d.player2===state.currentUser) && d.status==="active");
+    if(mine){ enterDuel(mine.id); return; }
+    render();
+  });
+}
+
+async function createDuel(){
+  const acc = currentAccount();
+  const questions = buildMixedQuestionPool(DUEL_QUESTION_COUNT);
+  try{
+    const ref = await db.collection("duels").add({
+      player1: state.currentUser,
+      player1Name: acc.fullName,
+      player2: null,
+      player2Name: null,
+      status: "waiting",
+      questions,
+      duration: DUEL_DURATION_SECONDS,
+      answers: { [state.currentUser]: new Array(questions.length).fill(null) },
+      finishedBy: [],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    enterDuel(ref.id);
+  }catch(e){
+    console.error("Duel yaratishda xatolik:", e);
+    alert("Duel yaratishda xatolik yuz berdi.");
+  }
+}
+
+async function joinDuel(duelId){
+  const acc = currentAccount();
+  try{
+    const ref = db.collection("duels").doc(duelId);
+    const doc = await ref.get();
+    if(!doc.exists || doc.data().status!=="waiting"){
+      alert("Bu duel endi mavjud emas.");
+      loadDuelLobby().then(render);
+      return;
+    }
+    const data = doc.data();
+    const answers = Object.assign({}, data.answers||{});
+    answers[state.currentUser] = new Array(data.questions.length).fill(null);
+    await ref.update({
+      player2: state.currentUser,
+      player2Name: acc.fullName,
+      status: "active",
+      answers,
+      startedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    enterDuel(duelId);
+  }catch(e){
+    console.error("Duelga qo'shilishda xatolik:", e);
+    alert("Qo'shilishda xatolik yuz berdi.");
+  }
+}
+
+async function cancelDuel(duelId){
+  try{ await db.collection("duels").doc(duelId).delete(); }
+  catch(e){ console.error(e); }
+  loadDuelLobby().then(render);
+}
+
+function enterDuel(duelId){
+  detachDuelListener();
+  state.duelId = duelId;
+  state.duelMyIndex = 0;
+  state.duelUnsub = db.collection("duels").doc(duelId)
+    .onSnapshot(handleDuelSnapshot, e=>console.error("Duel snapshot xatosi:", e));
+}
+
+function handleDuelSnapshot(doc){
+  if(!doc.exists){
+    detachDuelListener();
+    if(state.screen.indexOf("duel")===0) goDuel();
+    return;
+  }
+  const data = {id:doc.id, ...doc.data()};
+  state.duelData = data;
+
+  if(data.status==="waiting"){
+    state.screen = "duel_lobby";
+    render();
+  } else if(data.status==="active"){
+    state.screen = "duel_arena";
+    render();
+    ensureDuelTimer(data);
+    maybeFinalizeDuel(data, false);
+  } else if(data.status==="finished"){
+    clearInterval(state.duelTimerHandle);
+    const alreadyShown = state.screen==="duel_result";
+    state.screen = "duel_result";
+    render();
+    if(!alreadyShown && data.winner===state.currentUser) launchConfetti();
+  }
+}
+
+function ensureDuelTimer(data){
+  if(state.duelTimerDuelId===data.id && state.duelTimerHandle) { updateDuelTimerDisplay(); return; }
+  clearInterval(state.duelTimerHandle);
+  state.duelTimerDuelId = data.id;
+  const startedDate = toJsDate(data.startedAt);
+  if(!startedDate){
+    setTimeout(()=>{ if(state.duelData && state.duelData.id===data.id) ensureDuelTimer(state.duelData); }, 500);
+    return;
+  }
+  const endTime = startedDate.getTime() + data.duration*1000;
+  function tick(){
+    const remaining = Math.max(0, Math.round((endTime-Date.now())/1000));
+    state.duelTimeLeft = remaining;
+    updateDuelTimerDisplay();
+    if(remaining<=0){
+      clearInterval(state.duelTimerHandle);
+      maybeFinalizeDuel(state.duelData, true);
+    }
+  }
+  tick();
+  state.duelTimerHandle = setInterval(tick, 1000);
+}
+
+function updateDuelTimerDisplay(){
+  const el = document.getElementById("duelTimer");
+  if(!el) return;
+  const m = Math.floor(state.duelTimeLeft/60);
+  const s = state.duelTimeLeft%60;
+  el.textContent = `${m}:${s.toString().padStart(2,"0")}`;
+  el.classList.toggle("low", state.duelTimeLeft<=20);
+}
+
+async function selectDuelAnswer(i){
+  const data = state.duelData;
+  if(!data) return;
+  const mine = (data.answers && data.answers[state.currentUser] ? data.answers[state.currentUser] : new Array(data.questions.length).fill(null)).slice();
+  mine[state.duelMyIndex] = i;
+  const answers = Object.assign({}, data.answers||{});
+  answers[state.currentUser] = mine;
+  data.answers = answers;
+  render();
+  try{
+    const fieldPath = new firebase.firestore.FieldPath("answers", state.currentUser);
+    await db.collection("duels").doc(data.id).update(fieldPath, mine);
+  }catch(e){ console.error("Duel javobini saqlashda xatolik:", e); }
+}
+
+function duelPrev(){ state.duelMyIndex--; render(); }
+function duelNext(){ state.duelMyIndex++; render(); }
+
+async function duelSubmitAll(){
+  const data = state.duelData;
+  if(!data) return;
+  const finishedBy = Array.from(new Set([...(data.finishedBy||[]), state.currentUser]));
+  data.finishedBy = finishedBy;
+  render();
+  try{
+    await db.collection("duels").doc(data.id).update({
+      finishedBy: firebase.firestore.FieldValue.arrayUnion(state.currentUser)
+    });
+    maybeFinalizeDuel(data, false);
+  }catch(e){ console.error("Duelni yakunlashda xatolik:", e); }
+}
+
+async function maybeFinalizeDuel(data, forceTimeUp){
+  if(!data || data.status!=="active") return;
+  const players = [data.player1, data.player2].filter(Boolean);
+  const bothDone = players.length===2 && players.every(p=>(data.finishedBy||[]).includes(p));
+  if(!bothDone && !forceTimeUp) return;
+
+  const scores = {};
+  players.forEach(p=>{
+    const ans = (data.answers && data.answers[p]) || [];
+    let score = 0;
+    data.questions.forEach((q,i)=>{ if(ans[i]===q.correct) score++; });
+    scores[p] = score;
+  });
+  let winner = null;
+  if(players.length===2){
+    const [p1,p2] = players;
+    if(scores[p1]>scores[p2]) winner = p1;
+    else if(scores[p2]>scores[p1]) winner = p2;
+    else winner = "draw";
+  }
+  try{
+    await db.collection("duels").doc(data.id).update({
+      status:"finished", scores, winner,
+      finishedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){ console.error("Duel yakunini saqlashda xatolik:", e); }
+}
+
+function renderDuelLobby(){
+  const list = state.duelList || [];
+  const openDuels = list.filter(d=>d.status==="waiting" && d.player1!==state.currentUser);
+  const myWaitingLive = (state.duelData && state.duelData.status==="waiting" && state.duelData.player1===state.currentUser) ? state.duelData : null;
+  const myWaiting = myWaitingLive || list.find(d=>d.status==="waiting" && d.player1===state.currentUser);
+
+  app.innerHTML = `
+  <div class="screen profile-wrap">
+    <div class="profile-head">
+      <div>
+        <h1>Duel</h1>
+        <div class="login-line">Boshqa foydalanuvchi bilan real vaqtda bellashing — ${DUEL_QUESTION_COUNT} ta aralash savol, umumiy ${Math.round(DUEL_DURATION_SECONDS/60)} daqiqa vaqt.</div>
+      </div>
+    </div>
+
+    ${myWaiting ? `
+      <div class="profile-card" style="text-align:center;">
+        <h3>Sizning duelingiz kutmoqda...</h3>
+        <p style="color:var(--text-soft); font-size:13.5px; margin-bottom:14px;">Boshqa o'yinchi qo'shilishini kuting yoki bekor qiling.</p>
+        <button class="btn" onclick="cancelDuel('${myWaiting.id}')">Bekor qilish</button>
+      </div>
+    ` : `
+      <div class="profile-card" style="text-align:center;">
+        <h3>Yangi duel boshlash</h3>
+        <p style="color:var(--text-soft); font-size:13.5px; margin-bottom:14px;">${DUEL_QUESTION_COUNT} ta aralash savol, ${Math.round(DUEL_DURATION_SECONDS/60)} daqiqa vaqt beriladi.</p>
+        <button class="btn primary" onclick="createDuel()">Duel yaratish</button>
+      </div>
+    `}
+
+    <div class="section-head" style="margin-top:10px;">
+      <h2>Kutayotgan duellar</h2>
+      <span>${openDuels.length} ta</span>
+    </div>
+    ${openDuels.length ? `<div class="admin-user-list">` + openDuels.map(d=>`
+      <div class="admin-user-row">
+        <div class="admin-user-info">
+          <b>${d.player1Name}</b>
+          <span>${DUEL_QUESTION_COUNT} savol · ${Math.round(DUEL_DURATION_SECONDS/60)} daqiqa</span>
+        </div>
+        <button class="btn brass" style="flex:none;" onclick="joinDuel('${d.id}')">Qo'shilish</button>
+      </div>`).join("") + `</div>` : `<div class="empty-note">Hozircha kutayotgan duel yo'q. Birinchi bo'lib yarating!</div>`}
+  </div>`;
+}
+
+function renderDuelArena(){
+  const data = state.duelData;
+  if(!data){ app.innerHTML = `<div class="screen"><div class="empty-note">Yuklanmoqda...</div></div>`; return; }
+
+  const myAnswers = (data.answers && data.answers[state.currentUser]) || new Array(data.questions.length).fill(null);
+  const oppUsername = data.player1===state.currentUser ? data.player2 : data.player1;
+  const oppName = data.player1===state.currentUser ? data.player2Name : data.player1Name;
+  const oppAnswers = (data.answers && data.answers[oppUsername]) || [];
+  const oppDone = oppAnswers.filter(a=>a!==null && a!==undefined).length;
+  const myDone = myAnswers.filter(a=>a!==null && a!==undefined).length;
+
+  const qIndex = state.duelMyIndex;
+  const q = data.questions[qIndex];
+  const letters = ["A","B","C","D"];
+  const selected = myAnswers[qIndex];
+
+  app.innerHTML = `
+  <div class="screen quiz-wrap">
+    <div class="quiz-head">
+      <h2>⚔️ Duel — ${q.testTitle}</h2>
+      <span class="timer" id="duelTimer">--:--</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${(qIndex/data.questions.length)*100}%"></div></div>
+    <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-soft); margin-bottom:14px;">
+      <span>Siz: ${myDone}/${data.questions.length}</span>
+      <span>${oppName||"Raqib"}: ${oppDone}/${data.questions.length}</span>
+    </div>
+    <div class="q-count">Savol ${qIndex+1} / ${data.questions.length}</div>
+    <div class="q-text">${q.q}</div>
+    <div class="options">
+      ${q.options.map((opt,i)=>`
+        <button class="option ${selected===i?'selected':''}" onclick="selectDuelAnswer(${i})">
+          <span class="letter">${letters[i]}</span>
+          <span>${opt}</span>
+        </button>
+      `).join("")}
+    </div>
+    <div class="quiz-nav">
+      <div></div>
+      <div style="display:flex; gap:10px;">
+        ${qIndex>0 ? `<button class="btn" onclick="duelPrev()">Orqaga</button>` : ""}
+        ${qIndex<data.questions.length-1
+          ? `<button class="btn primary" ${selected==null?'disabled':''} onclick="duelNext()">Keyingisi</button>`
+          : `<button class="btn primary" ${selected==null?'disabled':''} onclick="duelSubmitAll()">Yakunlash</button>`}
+      </div>
+    </div>
+  </div>`;
+  updateDuelTimerDisplay();
+}
+
+function renderDuelResult(){
+  const data = state.duelData;
+  if(!data){ app.innerHTML = `<div class="screen"><div class="empty-note">Yuklanmoqda...</div></div>`; return; }
+
+  const oppUsername = data.player1===state.currentUser ? data.player2 : data.player1;
+  const oppName = data.player1===state.currentUser ? data.player2Name : data.player1Name;
+  const myScore = (data.scores && data.scores[state.currentUser]) || 0;
+  const oppScore = (data.scores && data.scores[oppUsername]) || 0;
+  const iWon = data.winner===state.currentUser;
+  const isDraw = data.winner==="draw";
+
+  app.innerHTML = `
+  <div class="screen result-wrap ${(iWon||isDraw)?'':'fail'}">
+    <div class="score-ring">
+      <span class="num">${myScore}/${data.questions.length}</span>
+      <span class="lbl">Sizning ballingiz</span>
+    </div>
+    <h2 class="result-verdict">${isDraw ? "Durrang!" : iWon ? "Siz yutdingiz! 🏆" : "Siz yutqazdingiz."}</h2>
+    <p class="hint">Siz: ${myScore} · ${oppName||"Raqib"}: ${oppScore}</p>
+    <div class="result-actions">
+      <button class="btn primary" onclick="goDuel()">Yangi duel</button>
+      <button class="btn" onclick="goHome()">Bosh sahifaga qaytish</button>
+    </div>
+  </div>`;
+}
+
+function launchConfetti(){
+  const canvas = document.createElement("canvas");
+  canvas.style.position = "fixed";
+  canvas.style.inset = "0";
+  canvas.style.zIndex = "500";
+  canvas.style.pointerEvents = "none";
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  const colors = ["#A9822C","#2F5FA8","#2F7A5D","#6A4FA0","#9C6B2E","#B5495B"];
+  const pieces = Array.from({length:140}, ()=>({
+    x: Math.random()*canvas.width,
+    y: -20 - Math.random()*canvas.height*0.3,
+    size: 6+Math.random()*6,
+    color: colors[Math.floor(Math.random()*colors.length)],
+    speedY: 2+Math.random()*3,
+    speedX: -2+Math.random()*4,
+    rot: Math.random()*360,
+    rotSpeed: -8+Math.random()*16
+  }));
+  let frame = 0;
+  function draw(){
+    frame++;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.x += p.speedX; p.y += p.speedY; p.rot += p.rotSpeed;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+      ctx.restore();
+    });
+    if(frame<220) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  draw();
+}
+/* ================= /DUEL ================= */
+
+/* ================= CHAT ================= */
+const CHAT_PRESENCE_HEARTBEAT_MS = 20000;
+const CHAT_PRESENCE_ONLINE_MS = 40000;
+
+function escapeHtml(str){
+  return String(str==null?"":str).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+const EMOJI_LIST = ["😀","😁","😂","🤣","😊","😍","😘","😜","🤔","😐","😢","😭","😡","👍","👎","👏","🙏","💪","🔥","✨","🎉","❤️","💯","😴","🤯","🥳","😇","🙃","😉","😎","🤗","😱","👀","🤝","🙌","💡","✅","❌","🎯","🚀","📚","🏆"];
+
+function toggleEmojiPicker(e){
+  if(e) e.stopPropagation();
+  const picker = document.getElementById("emojiPicker");
+  if(picker) picker.classList.toggle("open");
+}
+function insertEmoji(emoji){
+  const input = document.getElementById("chatInput");
+  if(!input) return;
+  const start = input.selectionStart!=null ? input.selectionStart : input.value.length;
+  const end = input.selectionEnd!=null ? input.selectionEnd : input.value.length;
+  input.value = input.value.slice(0,start) + emoji + input.value.slice(end);
+  const pos = start + emoji.length;
+  input.focus();
+  input.setSelectionRange(pos,pos);
+}
+document.addEventListener("click", function(e){
+  const picker = document.getElementById("emojiPicker");
+  if(picker && picker.classList.contains("open") && !picker.contains(e.target) && !e.target.closest(".emoji-btn")){
+    picker.classList.remove("open");
+  }
+});
+
+function goChatRoom(){
+  state.screen = "chatroom";
+  state.chatMessages = [];
+  render();
+  subscribeChatMessages();
+  startChatPresence();
+}
+
+function subscribeChatMessages(){
+  if(state.chatUnsub) return;
+  state.chatUnsub = db.collection("chatMessages").orderBy("createdAt","desc").limit(60)
+    .onSnapshot(snap=>{
+      state.chatMessages = snap.docs.map(d=>({id:d.id, ...d.data()})).reverse();
+      if(state.screen==="chatroom") renderChatMessages();
+    }, e=>console.error("Chat xabarlarini o'qishda xatolik:", e));
+}
+
+function sendChatHeartbeat(){
+  const acc = currentAccount();
+  db.collection("chatPresence").doc(state.currentUser).set({
+    fullName: acc ? acc.fullName : state.currentUser,
+    role: acc ? (acc.role||null) : null,
+    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+  }, {merge:true}).catch(e=>console.error("Chat online holatini yozishda xatolik:", e));
+}
+
+function subscribeChatPresenceCount(){
+  if(state.chatPresenceUnsub) return;
+  state.chatPresenceUnsub = db.collection("chatPresence").onSnapshot(snap=>{
+    const now = Date.now();
+    const online = [];
+    snap.forEach(doc=>{
+      const d = toJsDate(doc.data().lastSeen);
+      if(d && (now-d.getTime()) < CHAT_PRESENCE_ONLINE_MS){
+        online.push({username: doc.id, fullName: doc.data().fullName || doc.id, role: doc.data().role || null});
+      }
+    });
+    state.chatOnlineUsers = online;
+    state.chatOnlineCount = online.length;
+    updateChatOnlineBadge();
+  }, e=>console.error("Chatdagilar sonini o'qishda xatolik:", e));
+}
+
+function startChatPresence(){
+  sendChatHeartbeat();
+  clearInterval(state.chatHeartbeatTimer);
+  state.chatHeartbeatTimer = setInterval(sendChatHeartbeat, CHAT_PRESENCE_HEARTBEAT_MS);
+  subscribeChatPresenceCount();
+}
+
+function leaveChatRoom(){
+  if(state.chatUnsub){ state.chatUnsub(); state.chatUnsub = null; }
+  if(state.chatPresenceUnsub){ state.chatPresenceUnsub(); state.chatPresenceUnsub = null; }
+  clearInterval(state.chatHeartbeatTimer);
+  state.chatHeartbeatTimer = null;
+}
+
+function sendChatMessage(){
+  const input = document.getElementById("chatInput");
+  if(!input) return;
+  const text = input.value.trim();
+  if(!text) return;
+  const acc = currentAccount();
+  input.value = "";
+  db.collection("chatMessages").add({
+    username: state.currentUser,
+    fullName: acc ? acc.fullName : state.currentUser,
+    role: acc ? (acc.role||null) : null,
+    text: text.slice(0, 500),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(e=>{
+    console.error("Xabar yuborishda xatolik:", e);
+    alert("Xabar yuborilmadi.");
+  });
+}
+
+function renderChatRoom(){
+  app.innerHTML = `
+  <div class="screen chat-wrap">
+    <div class="profile-head" style="margin-bottom:16px;">
+      <div>
+        <h1>Bilim Sinovi chati</h1>
+        <button class="login-line" id="chatOnlineBadge" onclick="openChatOnlineList()" style="cursor:pointer; text-decoration:underline; text-underline-offset:2px;">🟢 ${state.chatOnlineCount} kishi chatda</button>
+      </div>
+    </div>
+    <div class="chat-box">
+      <div class="chat-messages" id="chatMessagesList"></div>
+      <div class="chat-input-row">
+        <button type="button" class="emoji-btn" onclick="toggleEmojiPicker(event)">😀</button>
+        <div class="emoji-picker" id="emojiPicker">
+          ${EMOJI_LIST.map(e=>`<button type="button" onclick="insertEmoji('${e}')">${e}</button>`).join("")}
+        </div>
+        <input id="chatInput" type="text" placeholder="Xabar yozing..." maxlength="500" onkeydown="if(event.key==='Enter') sendChatMessage()">
+        <button class="btn primary" onclick="sendChatMessage()">Yuborish</button>
+      </div>
+    </div>
+  </div>`;
+  renderChatMessages();
+}
+
+function renderChatMessages(){
+  const list = document.getElementById("chatMessagesList");
+  if(!list) return;
+  const msgs = state.chatMessages || [];
+  list.innerHTML = msgs.length
+    ? msgs.map(m=>{
+        const mine = m.username===state.currentUser;
+        return `<div class="chat-msg ${mine?'mine':''}">
+          <span class="chat-msg-avatar" style="background:${roleColor(m.role)}; cursor:pointer;" onclick="showUserProfile('${m.username}')">${initials(m.fullName||m.username)}</span>
+          <div class="chat-msg-bubble">
+            <div class="chat-msg-name" style="cursor:pointer;" onclick="showUserProfile('${m.username}')">${mine ? "Siz" : escapeHtml(m.fullName||m.username)}</div>
+            <div class="chat-msg-text">${escapeHtml(m.text)}</div>
+          </div>
+        </div>`;
+      }).join("")
+    : `<div class="empty-note">Hozircha xabar yo'q. Birinchi bo'lib yozing!</div>`;
+  list.scrollTop = list.scrollHeight;
+}
+
+async function showUserProfile(username){
+  document.getElementById("userProfileBackdrop").classList.add("open");
+  const body = document.getElementById("userProfileBody");
+  body.innerHTML = `<div class="empty-note">Yuklanmoqda...</div>`;
+  try{
+    const doc = await db.collection("accounts").doc(username).get();
+    if(!doc.exists){ body.innerHTML = `<div class="empty-note">Foydalanuvchi topilmadi.</div>`; return; }
+    const a = doc.data();
+    const st = userStats(a);
+    state._profileViewCache = {username, fullName:a.fullName};
+    body.innerHTML = `
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+        <span class="lb-avatar" style="width:44px; height:44px; font-size:16px; background:${roleColor(a.role)};">${initials(a.fullName)}</span>
+        <div>
+          <div style="font-weight:700; color:var(--ink); font-size:15px;">${escapeHtml(a.fullName)}${username===state.currentUser?" (siz)":""}</div>
+          <div style="font-size:12.5px; color:var(--text-soft);">@${username} · ${roleLabel(a.role) || "—"}</div>
+        </div>
+      </div>
+      <div class="stat-row" style="margin-bottom:0; grid-template-columns:repeat(3,1fr);">
+        <div class="stat-box"><div class="n">${st.attemptsCount}</div><div class="l">Test yechgan</div></div>
+        <div class="stat-box"><div class="n">${st.certCount}</div><div class="l">Sertifikat</div></div>
+        <div class="stat-box"><div class="n">${st.totalXp}</div><div class="l">XP</div></div>
+      </div>
+      ${username!==state.currentUser ? `<button class="btn primary" style="width:100%; margin-top:14px;" onclick="openDmFromProfile('${username}')">✉️ Shaxsiy xabar yozish</button>` : ""}`;
+  }catch(e){
+    console.error("Profil ma'lumotini yuklashda xatolik:", e);
+    body.innerHTML = `<div class="empty-note">Ma'lumotni yuklab bo'lmadi.</div>`;
+  }
+}
+function closeUserProfile(){
+  document.getElementById("userProfileBackdrop").classList.remove("open");
+}
+
+function updateChatOnlineBadge(){
+  const el = document.getElementById("chatOnlineBadge");
+  if(el) el.textContent = `🟢 ${state.chatOnlineCount} kishi chatda`;
+  renderChatOnlineList();
+}
+
+function openChatOnlineList(){
+  document.getElementById("chatOnlineBackdrop").classList.add("open");
+  renderChatOnlineList();
+}
+function closeChatOnlineList(){
+  document.getElementById("chatOnlineBackdrop").classList.remove("open");
+}
+function renderChatOnlineList(){
+  const backdrop = document.getElementById("chatOnlineBackdrop");
+  if(!backdrop || !backdrop.classList.contains("open")) return;
+  const body = document.getElementById("chatOnlineListBody");
+  if(!body) return;
+  const users = state.chatOnlineUsers || [];
+  body.innerHTML = users.length
+    ? `<div class="admin-user-list">` + users.map(u=>`
+        <div class="admin-user-row" style="cursor:pointer;" onclick="closeChatOnlineList(); showUserProfile('${u.username}')">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="lb-avatar" style="background:${roleColor(u.role)};">${initials(u.fullName)}</span>
+            <div class="admin-user-info">
+              <b>${escapeHtml(u.fullName)}${u.username===state.currentUser?" (siz)":""}</b>
+              <span>${roleLabel(u.role) || "—"}</span>
+            </div>
+          </div>
+        </div>`).join("") + `</div>`
+    : `<div class="empty-note">Hozircha chatda hech kim yo'q.</div>`;
+}
+/* ================= /CHAT ================= */
+
+/* ================= DM (shaxsiy xabar) ================= */
+function dmConvId(u1, u2){
+  return [u1,u2].sort().join("__");
+}
+
+function openDmFromProfile(username){
+  const cache = state._profileViewCache;
+  state.dmTargetUsername = username;
+  state.dmTargetName = (cache && cache.username===username) ? cache.fullName : username;
+  closeUserProfile();
+  closeChatOnlineList();
+  goDmChat();
+}
+
+function goDmChat(){
+  if(!state.dmTargetUsername) { goChatRoom(); return; }
+  state.screen = "dm_chat";
+  state.dmMessages = [];
+  render();
+  subscribeDmMessages();
+}
+
+function subscribeDmMessages(){
+  detachDmListener();
+  const convId = dmConvId(state.currentUser, state.dmTargetUsername);
+  state.dmConvId = convId;
+
+  function markRead(){
+    db.collection("conversations").doc(convId).set({
+      participants: [state.currentUser, state.dmTargetUsername].sort(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      readBy: { [state.currentUser]: firebase.firestore.FieldValue.serverTimestamp() }
+    }, {merge:true}).catch(e=>console.error("Suhbatni belgilashda xatolik:", e));
+  }
+  markRead();
+
+  state.dmUnsub = db.collection("conversations").doc(convId).collection("messages")
+    .orderBy("createdAt","desc").limit(60)
+    .onSnapshot(snap=>{
+      state.dmMessages = snap.docs.map(d=>({id:d.id, ...d.data()})).reverse();
+      if(state.screen==="dm_chat"){
+        renderDmMessages();
+        markRead();
+      }
+    }, e=>console.error("Shaxsiy xabarlarni o'qishda xatolik:", e));
+}
+
+function detachDmListener(){
+  if(state.dmUnsub){ state.dmUnsub(); state.dmUnsub = null; }
+}
+
+function sendDmMessage(){
+  const input = document.getElementById("dmInput");
+  if(!input || !state.dmConvId) return;
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = "";
+  const acc = currentAccount();
+  const convRef = db.collection("conversations").doc(state.dmConvId);
+  convRef.collection("messages").add({
+    from: state.currentUser,
+    fromName: acc ? acc.fullName : state.currentUser,
+    text: text.slice(0,500),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(()=>{
+    convRef.set({
+      participants: [state.currentUser, state.dmTargetUsername].sort(),
+      lastMessage: text.slice(0,120),
+      lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastSender: state.currentUser
+    }, {merge:true});
+  }).catch(e=>{
+    console.error("Shaxsiy xabar yuborishda xatolik:", e);
+    alert("Xabar yuborilmadi.");
+  });
+}
+
+function goBackFromDm(){
+  detachDmListener();
+  goChatRoom();
+}
+
+function renderDmChat(){
+  app.innerHTML = `
+  <div class="screen chat-wrap">
+    <div class="profile-head" style="margin-bottom:16px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="btn" style="padding:8px 14px; flex:none;" onclick="goBackFromDm()">← Orqaga</button>
+        <div>
+          <h1 style="font-size:19px;">${escapeHtml(state.dmTargetName||"Suhbat")}</h1>
+          <div class="login-line">Shaxsiy xabar almashish</div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-box">
+      <div class="chat-messages" id="dmMessagesList"></div>
+      <div class="chat-input-row">
+        <input id="dmInput" type="text" placeholder="Xabar yozing..." maxlength="500" onkeydown="if(event.key==='Enter') sendDmMessage()">
+        <button class="btn primary" onclick="sendDmMessage()">Yuborish</button>
+      </div>
+    </div>
+  </div>`;
+  renderDmMessages();
+}
+
+function renderDmMessages(){
+  const list = document.getElementById("dmMessagesList");
+  if(!list) return;
+  const msgs = state.dmMessages || [];
+  const myName = currentAccount() ? currentAccount().fullName : "Siz";
+  list.innerHTML = msgs.length
+    ? msgs.map(m=>{
+        const mine = m.from===state.currentUser;
+        return `<div class="chat-msg ${mine?'mine':''}">
+          <span class="chat-msg-avatar" style="background:${roleColor(null)};">${initials(mine ? myName : (state.dmTargetName||"?"))}</span>
+          <div class="chat-msg-bubble">
+            <div class="chat-msg-text">${escapeHtml(m.text)}</div>
+          </div>
+        </div>`;
+      }).join("")
+    : `<div class="empty-note">Hali xabar yo'q. Birinchi bo'lib yozing!</div>`;
+  list.scrollTop = list.scrollHeight;
+}
+/* ================= /DM ================= */
+
+function renderHome(){
+  ensureTestStats();
+  const acc = currentAccount();
+  const results = currentResults();
+  let resultsHtml = "";
+  if(results.length===0){
+    resultsHtml = `<div class="empty-note">Siz hali birorta test topshirmadingiz. Quyidagi testlardan birini tanlab boshlang.</div>`;
+  } else {
+    resultsHtml = `<div class="results-list">` + results.slice().reverse().map(r=>`
+      <div class="result-row">
+        <div>
+          <div class="name">${r.title}</div>
+          <div class="sub">${r.date} · ${r.score}/${r.total} ta to'g'ri javob${r.xp!=null?` · +${r.xp} XP`:""}${r.seconds!=null?` · ⏱ ${formatDuration(r.seconds)}`:""}</div>
+        </div>
+        <span class="badge ${r.passed?'pass':'fail'}">${r.passed? "O'tdi · " + r.percent + "%" : "O'tmadi · " + r.percent + "%"}</span>
+      </div>
+    `).join("") + `</div>`;
+  }
+
+  const bookRows = TESTS.map((t,i)=>{
+    const y = 18 + i*40;
+    return `<rect x="10" y="${y}" width="280" height="34" rx="2" fill="${t.color}"/>
+      <text x="26" y="${y+22}" fill="#fff" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">${t.title}</text>`;
+  }).join("");
+  const bookSvg = `<svg class="book-illustration" viewBox="0 0 300 ${18+TESTS.length*40+8}" xmlns="http://www.w3.org/2000/svg">${bookRows}</svg>`;
+
+  app.innerHTML = `
+  <div class="screen">
+    <div class="hero">
+      <div class="hero-copy">
+        <div class="hero-eyebrow">Online testlar va sertifikatlar</div>
+        <h1>Bilimingizni sinab ko'ring, natijangizni <span class="accent">sertifikat</span> bilan tasdiqlang.</h1>
+        <p>Har bir yo'nalish bo'yicha qisqa test topshiring. ${PASS_PERCENT}% va undan yuqori natija sizga rasmiy sertifikat olish imkonini beradi.</p>
+        <div class="hero-ctas">
+          <button class="btn primary" onclick="goTests()">Testlarni boshlash →</button>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-illustration-panel">
+          ${bookSvg}
+        </div>
+        <div class="hero-stats-card">
+          <div class="t">Bizning imkoniyatlar</div>
+          <div class="hero-stat"><span>Ta'lim yo'nalishlari</span><b>${TESTS.length}</b></div>
+          <div class="hero-stat"><span>O'tish balli</span><b>${PASS_PERCENT}%+</b></div>
+          <div class="hero-stat"><span>Sertifikat narxi</span><b>Bepul</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2>Mening natijalarim</h2>
+      <span>${results.length} ta urinish</span>
+    </div>
+    ${resultsHtml}
+
+    <div class="section-head" id="testsSection" style="margin-top:36px;">
+      <h2>Test yo'nalishlari</h2>
+      <span>${TESTS.length} ta yo'nalish</span>
+    </div>
+    <div class="test-grid">
+      ${TESTS.map(t=>`
+        <button class="test-card" onclick="startTest('${t.id}')">
+          <div class="test-card-header" style="background:${t.color}">
+            <span class="glyph">${t.icon}</span>
+            <span class="test-card-arrow">→</span>
+          </div>
+          <div class="test-card-body">
+            <div class="test-cat" style="color:${t.color}">${t.category}</div>
+            <h3>${t.title}</h3>
+            <div class="test-meta">
+              <span>${t.questions.length} ta savol</span>
+              <span>${t.duration} daqiqa</span>
+            </div>
+            <div class="test-rating">
+              ${(()=>{
+                const s = state.testStats ? state.testStats[t.id] : null;
+                if(!s) return `<span class="tr-loading">Statistika yuklanmoqda...</span>`;
+                const starsPart = s.avgStars ? `<span class="tr-stars">★ ${s.avgStars.toFixed(1)}</span> <span class="tr-sub">(${s.reviewCount} baho)</span>` : `<span class="tr-sub">Hali baho yo'q</span>`;
+                return `${starsPart} <span class="tr-sub">· ${s.participants} kishi topshirgan</span>`;
+              })()}
+            </div>
+            <div class="test-desc">${t.desc}</div>
+            <span class="test-cta" style="background:${t.color}">Testni boshlash →</span>
+          </div>
+        </button>
+      `).join("")}
+    </div>
+
+    <div class="section-head">
+      <h2>Tez-tez so'raladigan savollar</h2>
+      <span>${FAQS.length} ta savol</span>
+    </div>
+    <div class="faq-list">
+      ${FAQS.map(f=>`
+        <div class="faq-item">
+          <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+            <span>${f.q}</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a"><p>${f.a}</p></div>
+        </div>
+      `).join("")}
+    </div>
+
+    <footer class="site-footer">
+      <div class="footer-row">
+        <div class="footer-brand">
+          <span class="brand-mark">BS</span>
+          <div>
+            <div class="brand-name" style="font-size:16px;">Bilim Sinovi</div>
+            <div class="footer-tagline">Bilim — kelajak kaliti</div>
+          </div>
+        </div>
+        <div class="footer-rights">Barcha huquqlar himoyalangan.</div>
+        <div class="social-icons">
+          <a class="social-icon" href="https://t.me" target="_blank" rel="noopener" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3 2 11l6 2 2 6 3-4 5 4 4-16z"/></svg></a>
+          <a class="social-icon" href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/></svg></a>
+          <a class="social-icon" href="https://youtube.com" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></a>
+        </div>
+      </div>
+    </footer>
+  </div>`;
+}
+
+function startTest(id){
+  const test = getTest(id);
+  state.testId = id;
+  state.qIndex = 0;
+  state.answers = new Array(test.questions.length).fill(null);
+  state.timeLeft = test.duration*60;
+  state.startedAt = Date.now();
+  state.reviewStars = 0;
+  state.reviewSubmitted = false;
+  state.screen = "quiz";
+  render();
+  clearInterval(state.timerHandle);
+  state.timerHandle = setInterval(()=>{
+    state.timeLeft--;
+    if(state.timeLeft<=0){
+      clearInterval(state.timerHandle);
+      finishQuiz();
+    } else {
+      updateTimerDisplay();
+    }
+  },1000);
+}
+
+function updateTimerDisplay(){
+  const el = document.getElementById("timerDisplay");
+  if(!el) return;
+  const m = Math.floor(state.timeLeft/60);
+  const s = state.timeLeft%60;
+  el.textContent = `${m}:${s.toString().padStart(2,"0")}`;
+  el.classList.toggle("low", state.timeLeft<=30);
+}
+
+function renderQuiz(){
+  const test = getTest(state.testId);
+  const q = test.questions[state.qIndex];
+  const total = test.questions.length;
+  const selected = state.answers[state.qIndex];
+  const letters = ["A","B","C","D"];
+
+  app.innerHTML = `
+  <div class="screen quiz-wrap">
+    <div class="quiz-head">
+      <h2>${test.title}</h2>
+      <span class="timer" id="timerDisplay">--:--</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${(state.qIndex/total)*100}%"></div></div>
+    <div class="q-count">Savol ${state.qIndex+1} / ${total}</div>
+    <div class="q-text">${q.q}</div>
+    <div class="options">
+      ${q.options.map((opt,i)=>`
+        <button class="option ${selected===i?'selected':''}" onclick="selectAnswer(${i})">
+          <span class="letter">${letters[i]}</span>
+          <span>${opt}</span>
+        </button>
+      `).join("")}
+    </div>
+    <div class="quiz-nav">
+      <button class="btn-ghost" onclick="goHome()">Bekor qilish</button>
+      <div style="display:flex; gap:10px;">
+        ${state.qIndex>0?`<button class="btn" onclick="prevQuestion()">Orqaga</button>`:""}
+        ${state.qIndex<total-1
+          ? `<button class="btn primary" ${selected===null?'disabled':''} onclick="nextQuestion()">Keyingisi</button>`
+          : `<button class="btn primary" ${selected===null?'disabled':''} onclick="finishQuiz()">Testni yakunlash</button>`}
+      </div>
+    </div>
+  </div>`;
+  updateTimerDisplay();
+}
+
+function selectAnswer(i){
+  state.answers[state.qIndex] = i;
+  renderQuiz();
+}
+function nextQuestion(){
+  state.qIndex++;
+  renderQuiz();
+}
+function prevQuestion(){
+  state.qIndex--;
+  renderQuiz();
+}
+
+function finishQuiz(){
+  clearInterval(state.timerHandle);
+  const test = getTest(state.testId);
+  let score = 0;
+  test.questions.forEach((q,i)=>{ if(state.answers[i]===q.correct) score++; });
+  const percent = Math.round((score/test.questions.length)*100);
+  const passed = percent>=PASS_PERCENT;
+  const dateStr = new Date().toLocaleDateString("uz-UZ", {year:"numeric",month:"long",day:"numeric"});
+  const seconds = state.startedAt ? Math.round((Date.now() - state.startedAt)/1000) : 0;
+  const xp = score*XP_PER_CORRECT + (passed ? XP_PASS_BONUS : 0) + (percent===100 ? XP_PERFECT_BONUS : 0);
+
+  state.lastResult = {
+    testId: test.id, title: test.title, score, total: test.questions.length,
+    percent, passed, date: dateStr,
+    seconds, xp,
+    certId: passed ? certId(test.id) : null
+  };
+  currentAccount().results.push(state.lastResult);
+  db.collection("accounts").doc(state.currentUser).update({
+    results: firebase.firestore.FieldValue.arrayUnion(state.lastResult)
+  }).catch(e=>console.error("Natijani saqlashda xatolik:", e));
+  state.screen = "result";
+  render();
+}
+
+function renderResult(){
+  const r = state.lastResult;
+  const test = getTest(r.testId);
+  app.innerHTML = `
+  <div class="screen result-wrap ${r.passed?'':'fail'}">
+    <div class="score-ring">
+      <span class="num">${r.percent}%</span>
+      <span class="lbl">${r.score}/${r.total} to'g'ri</span>
+    </div>
+    <h2 class="result-verdict">${r.passed? "Tabriklaymiz, siz testdan o'tdingiz!" : "Afsuski, o'tish balliga yetmadingiz."}</h2>
+    <div class="result-xp">+${r.xp||0} XP to'pladingiz · ⏱ ${formatDuration(r.seconds)}</div>
+    <p class="hint">${r.passed? "Endi shaxsiy sertifikatingizni rasmiylashtirishingiz mumkin." : `O'tish uchun kamida ${PASS_PERCENT}% to'plash kerak. Qaytadan urinib ko'ring.`}</p>
+    <div class="result-actions">
+      ${r.passed?`<button class="btn primary" onclick="goCertificate()">Sertifikat olish</button>`:`<button class="btn primary" onclick="startTest('${r.testId}')">Qayta urinish</button>`}
+      <button class="btn" onclick="goHome()">Bosh sahifaga qaytish</button>
+    </div>
+    <div class="review-form">
+      ${state.reviewSubmitted
+        ? `<div class="review-done">Fikringiz uchun rahmat! ✓</div>`
+        : `<h3>Test haqida fikringiz</h3>
+           <div class="rf-sub">${r.title} testini baholang</div>
+           <div class="star-picker">
+             ${[1,2,3,4,5].map(n=>`<button class="star-btn ${ (state.reviewStars||0)>=n ? 'on':''}" onclick="setReviewStars(${n})">★</button>`).join("")}
+           </div>
+           <textarea id="reviewText" placeholder="Test haqida fikringizni yozing (ixtiyoriy)"></textarea>
+           <button class="btn primary" onclick="submitReview()">Fikrni yuborish</button>`}
+    </div>
+
+    <div class="review">
+      <h3>Javoblaringiz tafsiloti</h3>
+      ${test.questions.map((q,i)=>{
+        const userAns = state.answers[i];
+        const isRight = userAns===q.correct;
+        const letters=["A","B","C","D"];
+        return `<div class="review-item">
+          <div class="q">${i+1}. ${q.q}</div>
+          <div class="a ${isRight?'right':'wrong'}">
+            Sizning javobingiz: ${userAns===null?"belgilanmagan":letters[userAns]+") "+q.options[userAns]}
+            ${isRight?"":" · To'g'ri javob: "+letters[q.correct]+") "+q.options[q.correct]}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
+function bestPerTest(results){
+  const map = {};
+  (results||[]).forEach(r=>{
+    if(!map[r.testId] || r.percent > map[r.testId].percent) map[r.testId] = r;
+  });
+  return Object.values(map);
+}
+
+function userStats(acc){
+  const all = acc.results || [];
+  const bests = bestPerTest(all);
+  const certCount = bests.filter(b=>b.passed).length;
+  const avgPercent = bests.length ? Math.round(bests.reduce((s,b)=>s+b.percent,0)/bests.length) : 0;
+  const totalXp = all.reduce((s,r)=>s+(r.xp||0), 0);
+  const totalSeconds = all.reduce((s,r)=>s+(r.seconds||0), 0);
+  return {certCount, avgPercent, attemptsCount:all.length, totalXp, totalSeconds};
+}
+
+function setReviewStars(n){
+  state.reviewStars = n;
+  // Matn kiritilgan bo'lsa, qayta render paytida yo'qolmasin
+  const ta = document.getElementById("reviewText");
+  if(ta) state.reviewDraft = ta.value;
+  render();
+  const ta2 = document.getElementById("reviewText");
+  if(ta2 && state.reviewDraft) ta2.value = state.reviewDraft;
+}
+
+async function submitReview(){
+  if(!state.reviewStars){ alert("Iltimos, avval yulduzcha bilan baho bering."); return; }
+  const ta = document.getElementById("reviewText");
+  const text = ta ? ta.value.trim() : "";
+  const r = state.lastResult;
+  const acc = currentAccount();
+
+  try{
+    await db.collection("reviews").add({
+      username: state.currentUser,
+      fullName: acc.fullName,
+      role: acc.role || null,
+      testId: r.testId,
+      testTitle: r.title,
+      stars: state.reviewStars,
+      text: text,
+      percent: r.percent,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      dateLabel: r.date
+    });
+    state.reviewSubmitted = true;
+    state.reviewDraft = "";
+    render();
+  }catch(e){
+    console.error("Fikrni saqlashda xatolik:", e);
+    alert("Fikrni yuborishda xatolik yuz berdi. Qaytadan urinib ko'ring.");
+  }
+}
+
+async function fetchReviews(){
+  try{
+    const snap = await db.collection("reviews").orderBy("createdAt","desc").limit(100).get();
+    return snap.docs.map(d=>d.data());
+  }catch(e){
+    // orderBy indeks talab qilsa yoki xato bo'lsa, oddiy o'qishga qaytamiz
+    try{
+      const snap = await db.collection("reviews").limit(100).get();
+      return snap.docs.map(d=>d.data());
+    }catch(e2){ console.error("Fikrlarni yuklashda xatolik:", e2); return []; }
+  }
+}
+
+async function goReviews(){
+  state.screen = "reviews";
+  state.reviews = null; // yuklanmoqda holati
+  render();
+  state.reviews = await fetchReviews();
+  if(state.screen==="reviews") render();
+}
+
+function renderReviewsPage(){
+  const reviews = state.reviews;
+  let html;
+
+  if(reviews===null){
+    html = `<div class="empty-note">Fikrlar yuklanmoqda...</div>`;
+  } else if(!reviews.length){
+    html = `<div class="empty-note">Hozircha fikrlar yo'q. Test topshirib, birinchi fikrni siz qoldiring!</div>`;
+  } else {
+    html = `<div class="reviews-list">` + reviews.map(rv=>{
+      const test = getTest(rv.testId);
+      const color = test ? test.color : "#3B4A6B";
+      return `
+        <div class="review-card">
+          <div class="review-card-top">
+            <span class="review-avatar" style="background:${color}">${initials(rv.fullName||"?")}</span>
+            <span class="who">
+              <b>${rv.fullName||"Foydalanuvchi"}</b>
+              <span>${rv.testTitle||""}${rv.dateLabel?" · "+rv.dateLabel:""}</span>
+            </span>
+            <span class="review-card-stars">${"★".repeat(rv.stars||0)}${"☆".repeat(Math.max(0,5-(rv.stars||0)))}</span>
+          </div>
+          ${rv.text ? `<div class="review-card-text">"${rv.text}"</div>` : ""}
+        </div>`;
+    }).join("") + `</div>`;
+  }
+
+  const avg = (reviews && reviews.length)
+    ? (reviews.reduce((s,r)=>s+(r.stars||0),0)/reviews.length).toFixed(1)
+    : null;
+
+  app.innerHTML = `
+  <div class="screen profile-wrap">
+    <div class="profile-head">
+      <div>
+        <h1>Fikrlar</h1>
+        <div class="login-line">${avg ? `O'rtacha baho: ★ ${avg} · ${reviews.length} ta fikr` : "Test topshirganlarning fikrlari"}</div>
+      </div>
+    </div>
+    ${html}
+  </div>`;
+}
+
+function renderLeaderboardPage(){
+  const rows = Object.keys(state.accounts).map(username=>{
+    const acc = state.accounts[username];
+    return {username, fullName:acc.fullName, role:acc.role, ...userStats(acc)};
+  }).filter(r=>r.attemptsCount>0);
+
+  rows.sort((a,b)=> b.totalXp-a.totalXp || b.certCount-a.certCount || a.totalSeconds-b.totalSeconds || a.fullName.localeCompare(b.fullName));
+
+  const medals = ["🥇","🥈","🥉"];
+  const html = rows.length
+    ? `<div class="leaderboard-grid">` + rows.map((r,i)=>`
+        <div class="lb-row ${r.username===state.currentUser?'is-me':''}">
+          <div class="lb-rank ${i<3?'medal':''}">${i<3?medals[i]:(i+1)}</div>
+          <span class="lb-avatar" style="background:${roleColor(r.role)}">${initials(r.fullName)}</span>
+          <div class="lb-info">
+            <b>${r.fullName}${r.username===state.currentUser?" (siz)":""}</b>
+            <span>${roleLabel(r.role)} · ${r.certCount} sertifikat · ⏱ ${formatDuration(r.totalSeconds)}</span>
+          </div>
+          <div class="lb-stats">
+            <div class="certs">${r.totalXp} XP</div>
+            <div class="avg">O'rtacha: ${r.avgPercent}%</div>
+          </div>
+        </div>`).join("") + `</div>`
+    : `<div class="empty-note">Hozircha reytingda hech kim yo'q. Birinchi bo'lib test topshiring!</div>`;
+
+  app.innerHTML = `
+  <div class="screen profile-wrap">
+    <div class="profile-head">
+      <div>
+        <h1>Reyting</h1>
+        <div class="login-line">To'plangan XP bo'yicha · har to'g'ri javob ${XP_PER_CORRECT} XP, o'tgani uchun +${XP_PASS_BONUS}, 100% uchun +${XP_PERFECT_BONUS}</div>
+      </div>
+    </div>
+    ${html}
+  </div>`;
+}
+
+function renderCertificatesPage(){
+  const passedResults = currentResults().filter(r=>r.passed);
+  const html = passedResults.length
+    ? `<div class="certs-page-grid">` + passedResults.slice().reverse().map(r=>`
+        <div class="cert-row">
+          <div>
+            <div>${r.title}</div>
+            <div class="sub">${r.date} · ${r.percent}%</div>
+          </div>
+          <button class="btn brass" onclick="viewCertificate('${r.testId}','${r.certId}')">Sertifikatni ko'rish</button>
+        </div>`).join("") + `</div>`
+    : `<div class="empty-note">Hozircha sertifikat yo'q. Test topshirib 70% va undan yuqori natija bilan yakunlang, sertifikat shu yerda paydo bo'ladi.</div>`;
+
+  app.innerHTML = `
+  <div class="screen profile-wrap">
+    <div class="profile-head">
+      <div>
+        <h1>Sertifikatlarim</h1>
+        <div class="login-line">${passedResults.length} ta rasmiy sertifikat</div>
+      </div>
+    </div>
+    ${html}
+  </div>`;
+}
+
+function renderProfile(){
+  const acc = currentAccount();
+  const results = currentResults();
+  const passedResults = results.filter(r=>r.passed);
+  const avg = results.length ? Math.round(results.reduce((s,r)=>s+r.percent,0)/results.length) : 0;
+
+  const certsHtml = passedResults.length
+    ? passedResults.slice().reverse().map(r=>`
+        <div class="cert-row">
+          <div>
+            <div>${r.title}</div>
+            <div class="sub">${r.date} · ${r.percent}%</div>
+          </div>
+          <button class="btn brass" onclick="viewCertificate('${r.testId}','${r.certId}')">Sertifikatni ko'rish</button>
+        </div>`).join("")
+    : `<div class="empty-note">Hozircha sertifikat yo'q. 70% va undan yuqori natija bilan testni yakunlang.</div>`;
+
+  app.innerHTML = `
+  <div class="screen profile-wrap">
+    <div class="profile-head">
+      <div>
+        <h1>${acc.fullName} ${acc.role ? `<span class="role-badge" style="background:${roleColor(acc.role)}">${roleLabel(acc.role)}</span>` : ""}</h1>
+        <div class="login-line">Login: ${state.currentUser}</div>
+      </div>
+      <button class="btn" onclick="logout()">Chiqish</button>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="n">${userStats(acc).totalXp}</div><div class="l">Jami XP</div></div>
+      <div class="stat-box"><div class="n">${results.length}</div><div class="l">Jami urinish</div></div>
+      <div class="stat-box"><div class="n">${passedResults.length}</div><div class="l">Muvaffaqiyatli</div></div>
+      <div class="stat-box"><div class="n">${avg}%</div><div class="l">O'rtacha ball</div></div>
+      <div class="stat-box"><div class="n" style="font-size:17px;">${formatDuration(userStats(acc).totalSeconds)}</div><div class="l">Sarflangan vaqt</div></div>
+    </div>
+
+    <div class="profile-card">
+      <h3>Mening sertifikatlarim</h3>
+      ${certsHtml}
+    </div>
+
+    <div class="profile-card">
+      <h3>Ism-familiya</h3>
+      ${state.profileMsg ? `<div class="profile-msg ${state.profileMsg.ok?'ok':'err'}">${state.profileMsg.text}</div>` : ""}
+      <div class="field">
+        <input id="pf_fullname" type="text" value="${acc.fullName}">
+      </div>
+      <button class="btn primary" onclick="saveProfileName()">Saqlash</button>
+    </div>
+
+    <div class="profile-card">
+      <h3>Parolni almashtirish</h3>
+      ${state.pwMsg ? `<div class="profile-msg ${state.pwMsg.ok?'ok':'err'}">${state.pwMsg.text}</div>` : ""}
+      <div class="field">
+        <label>Joriy parol</label>
+        <div class="field-pw">
+          <input id="pf_pw_old" type="password">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('pf_pw_old', this)">${EYE_ICON}</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Yangi parol</label>
+        <div class="field-pw">
+          <input id="pf_pw_new" type="password" oninput="checkNewPasswordStrength()">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('pf_pw_new', this)">${EYE_ICON}</button>
+        </div>
+        <div class="hint-line" id="pfPwHint"></div>
+      </div>
+      <div class="field">
+        <label>Yangi parolni tasdiqlang</label>
+        <div class="field-pw">
+          <input id="pf_pw_new2" type="password">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('pf_pw_new2', this)">${EYE_ICON}</button>
+        </div>
+      </div>
+      <button class="btn primary" onclick="changePassword()">Parolni yangilash</button>
+    </div>
+  </div>`;
+}
+
+async function saveProfileName(){
+  const val = document.getElementById("pf_fullname").value.trim();
+  if(!val){ state.profileMsg = {ok:false, text:"Ism bo'sh bo'lishi mumkin emas."}; render(); return; }
+  try{
+    await db.collection("accounts").doc(state.currentUser).update({fullName: val});
+    currentAccount().fullName = val;
+    state.profileMsg = {ok:true, text:"Saqlandi."};
+  }catch(e){
+    state.profileMsg = {ok:false, text:"Saqlashda xatolik yuz berdi."};
+  }
+  render();
+}
+
+function checkNewPasswordStrength(){
+  const el = document.getElementById("pfPwHint");
+  const input = document.getElementById("pf_pw_new");
+  if(!el || !input) return;
+  const r = passwordStrength(input.value);
+  el.textContent = r.label;
+  el.className = "hint-line " + r.level;
+}
+
+async function changePassword(){
+  const oldPw = document.getElementById("pf_pw_old").value;
+  const newPw = document.getElementById("pf_pw_new").value;
+  const newPw2 = document.getElementById("pf_pw_new2").value;
+
+  const strength = passwordStrength(newPw);
+  if(strength.level==="weak"){ state.pwMsg = {ok:false, text: strength.label || "Juda oson — yana urinib ko'ring."}; render(); return; }
+  if(newPw!==newPw2){ state.pwMsg = {ok:false, text:"Yangi parollar mos kelmadi."}; render(); return; }
+
+  try{
+    const user = auth.currentUser;
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, oldPw);
+    await user.reauthenticateWithCredential(cred);
+    await user.updatePassword(newPw);
+    state.pwMsg = {ok:true, text:"Parol muvaffaqiyatli yangilandi."};
+  }catch(e){
+    state.pwMsg = {ok:false, text: e.code==="auth/wrong-password" ? "Joriy parol noto'g'ri." : "Xatolik yuz berdi. Qaytadan urinib ko'ring."};
+  }
+  render();
+}
+
+function goCertificate(){
+  state._certId = null;
+  state.userName = null;
+  state.screen = "certificate";
+  render();
+}
+
+function viewCertificate(testId, certIdVal){
+  const r = currentResults().find(x=>x.testId===testId && x.certId===certIdVal);
+  if(!r) return;
+  state.lastResult = r;
+  state._certId = null;
+  state.userName = null;
+  state.screen = "certificate";
+  render();
+}
+
+function goHome(){
+  clearInterval(state.timerHandle);
+  state.screen = "home";
+  state.testStats = null;
+  render();
+}
+
+function certId(testId){
+  return "BS-" + testId.toUpperCase() + "-" + Math.floor(100000+Math.random()*899999);
+}
+
+function renderCertificate(){
+  const r = state.lastResult;
+  if(!state._certId) state._certId = r.certId || certId(r.testId);
+  if(!state.userName) state.userName = currentAccount().fullName;
+  const nameDisplay = state.userName || "___________________";
+
+  app.innerHTML = `
+  <div class="screen cert-wrap">
+    <div class="section-head">
+      <h2>Sertifikatingiz</h2>
+      <span>${r.title}</span>
+    </div>
+    <div class="cert-form">
+      <input id="nameInput" type="text" placeholder="To'liq ismingizni kiriting (masalan: Aliyev Sardor)" value="${state.userName}" oninput="updateName(this.value)">
+    </div>
+
+    <div class="certificate" id="certificateNode">
+      <div class="certificate-inner">
+        <div class="cert-eyebrow">Bilim Sinovi platformasi</div>
+        <div class="cert-title">Sertifikat</div>
+        <div class="cert-sub">Ushbu sertifikat quyidagi shaxsga beriladi:</div>
+        <div class="cert-name" id="certName">${nameDisplay}</div>
+        <div class="cert-body">
+          <b>${r.title}</b> testini muvaffaqiyatli topshirgani va <b>${r.percent}%</b> (${r.score}/${r.total} to'g'ri javob) natija ko'rsatgani uchun ushbu sertifikat bilan taqdirlanadi.
+        </div>
+        <div class="cert-footer">
+          <svg class="cert-seal" width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#A9822C" stroke-width="2"/>
+            <circle cx="32" cy="32" r="19" fill="none" stroke="#A9822C" stroke-width="1"/>
+            <text x="32" y="37" text-anchor="middle" font-family="Fraunces, serif" font-size="15" fill="#A9822C" font-weight="600">BS</text>
+          </svg>
+          <div class="cert-id">Sertifikat raqami<br>${state._certId}</div>
+          <div class="cert-date">Berilgan sana<br>${r.date}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cert-actions">
+      <button class="btn primary" onclick="downloadCertificate()">Rasm sifatida yuklab olish</button>
+      <button class="btn" onclick="window.print()">Chop etish</button>
+      <button class="btn-ghost" onclick="goHome()" style="align-self:center;">Bosh sahifaga qaytish</button>
+    </div>
+  </div>`;
+}
+
+function updateName(v){
+  state.userName = v;
+  const el = document.getElementById("certName");
+  if(el) el.textContent = v || "___________________";
+}
+
+function downloadCertificate(){
+  const node = document.getElementById("certificateNode");
+  if(!window.html2canvas){ alert("Yuklab olish vositasi hozircha yuklanmoqda, birozdan so'ng qayta urinib ko'ring."); return; }
+  html2canvas(node, {backgroundColor:"#F7F2E7", scale:2}).then(canvas=>{
+    const link = document.createElement("a");
+    link.download = "sertifikat-" + (state.lastResult ? state.lastResult.testId : "bs") + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  });
+}
+
+(async function bootstrap(){
+  applyTheme(await loadTheme());
+  init();
+})();
+</script>
+</body>
+</html>
